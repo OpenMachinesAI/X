@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bad Web Design Example</title>
+    <style>
+        body {
+            background-color: #ff00ff; /* Bright background */
+            color: #00ff00; /* Clashing text color */
+            font-family: Comic Sans, sans-serif; /* Poor choice for professional design */
+        }
+        h1 {
+            text-align: center;
+        }
+        #startButton {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #0000ff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .popup {
+            position: absolute;
+            background-color: white;
+            border: 1px solid black;
+            padding: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>This is a Bad Web Design Example</h1>
+    <audio id="audio" src="path_to_your_audio.mp3" autoplay loop></audio>
+    <button id="startButton">Start Opening Pages</button>
+
+    <script>
+        document.getElementById("startButton").onclick = function() {
+            // Open new pages
+            const pages = [
+                "https://example.com/page1",
+                "https://example.com/page2",
+                "https://example.com/page3",
+                "https://example.com/page4",
+                "https://example.com/page5",
+                "https://example.com/page6",
+                "https://example.com/page7",
+                "https://example.com/page8",
+                "https://example.com/page9",
+                "https://example.com/page10"
+            ];
+
+            setInterval(function() {
+                const randomIndex = Math.floor(Math.random() * pages.length);
+                const randomPage = pages[randomIndex];
+                window.open(randomPage, '_blank', 'toolbar=0,location=0,menubar=0');
+            }, 10000); // Open a new page every 10 seconds
+
+            // Create bouncing popups
+            setInterval(createBouncingPopup, 5000);
+        };
+
+        function createBouncingPopup() {
+            const popup = document.createElement("div");
+            popup.classList.add("popup");
+            popup.textContent = "Annoying Popup!";
+            document.body.appendChild(popup);
+
+            let x = 0, y = 0;
+            let xDirection = 1, yDirection = 1;
+
+            function movePopup() {
+                if (x > window.innerWidth - 100 || x < 0) {
+                    xDirection *= -1;
+                }
+                if (y > window.innerHeight - 50 || y < 0) {
+                    yDirection *= -1;
+                }
+                x += 5 * xDirection;
+                y += 5 * yDirection;
+                popup.style.left = x + 'px';
+                popup.style.top = y + 'px';
+            }
+
+            setInterval(movePopup, 50);
+        }
+    </script>
+</body>
+</html>
