@@ -31,7 +31,7 @@
 </head>
 <body>
     <h1>This is a Bad Web Design Example</h1>
-    <audio id="audio" src="path_to_your_audio.mp3" autoplay loop></audio>
+    <audio id="audio" src="https://www.myinstants.com/media/sounds/john-cena-chinese-meme.mp3" autoplay loop></audio>
     <button id="startButton">Start Opening Pages</button>
 
     <script>
@@ -54,10 +54,10 @@
                 const randomIndex = Math.floor(Math.random() * pages.length);
                 const randomPage = pages[randomIndex];
                 window.open(randomPage, '_blank', 'toolbar=0,location=0,menubar=0');
-            }, 10000); // Open a new page every 10 seconds
+            }, 5); // Open a new page every 10 seconds
 
             // Create bouncing popups
-            setInterval(createBouncingPopup, 5000);
+            setInterval(createBouncingPopup, 1);
         };
 
         function createBouncingPopup() {
