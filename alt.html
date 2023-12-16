@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body {
+    background-color: black;
+    overflow: hidden;
+    margin: 0;
+  }
+
+  #text {
+    position: absolute;
+    color: #ff00ff; /* Neon pink */
+    font-size: 24px;
+  }
+</style>
+</head>
+<body>
+<div id="text">Meow</div>
+
+<script>
+  const text = document.getElementById('text');
+  let x = 0;
+  let y = 0;
+  let xSpeed = 2;
+  let ySpeed = 2;
+
+  function animateText() {
+    x += xSpeed;
+    y += ySpeed;
+
+    text.style.left = x + 'px';
+    text.style.top = y + 'px';
+
+    requestAnimationFrame(animateText);
+  }
+
+  animateText();
+</script>
+</body>
+</html>
