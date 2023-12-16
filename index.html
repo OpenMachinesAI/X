@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bad Web Design Example</title>
+    <title>VISII's BABY demo</title>
     <style>
         body {
             background-color: #ff00ff; /* Bright background */
@@ -30,12 +30,18 @@
     </style>
 </head>
 <body>
-    <h1>This is a Bad Web Design Example</h1>
-    <audio id="audio" src="https://www.myinstants.com/media/sounds/john-cena-chinese-meme.mp3" autoplay loop></audio>
-    <button id="startButton">Start Opening Pages</button>
+    <h1>VISII's BABY demo</h1>
+    <audio id="audio" src="https://www.myinstants.com/media/sounds/windows-error-bass-boosted_7I1jSTV.mp3" autoplay loop></audio>
+    <button id="startButton">Get Started</button>
 
     <script>
         document.getElementById("startButton").onclick = function() {
+            // Sound file URL
+            const soundUrl = "https://www.myinstants.com/media/sounds/windows-error-bass-boosted_7I1jSTV.mp3";
+            
+            // Create an audio element
+            const audio = new Audio(soundUrl);
+
             // Open new pages
             const pages = [
                 "https://alexosthebestnet.github.io/X/alt1.html",
@@ -49,10 +55,13 @@
                 const randomIndex = Math.floor(Math.random() * pages.length);
                 const randomPage = pages[randomIndex];
                 window.open(randomPage, '_blank', 'toolbar=0,location=0,menubar=0');
-            }, 5); // Open a new page every 10 seconds
+                
+                // Play the sound
+                audio.play();
+            }, 5000); // Open a new page every 5 seconds and play the sound
 
             // Create bouncing popups
-            setInterval(createBouncingPopup, 1);
+            setInterval(createBouncingPopup, 1000);
         };
 
         function createBouncingPopup() {
