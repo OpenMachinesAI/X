@@ -15,6 +15,108 @@
         "result-title-text": "Maze",
         "result-click-url": "https://alexosthebestnet.github.io/X/maze",
         "result-display-url": "maze.v",
-        "result-description": "just a 3D maze bro."
+        "result-description": "Just a 3D maze bro."
+    },
+    {
+        "result-title-text": "Seminar Database",
+        "result-click-url": "404",
+        "result-display-url": "seminar.v",
+        "result-description": "Learn about what you missed and explore older presentations"
+    },
+    {
+        "result-title-text": "pagw 2",
+        "result-click-url": "https://example.com/new-page-2.html",
+        "result-display-url": "new-page-2.v",
+        "result-description": "Description for New Page 2"
+    },
+    {
+        "result-title-text": "New Page 3",
+        "result-click-url": "https://example.com/new-page-3.html",
+        "result-display-url": "new-page-3.v",
+        "result-description": "Description for New Page 3"
+    },
+    {
+        "result-title-text": "New Page 4",
+        "result-click-url": "https://example.com/new-page-4.html",
+        "result-display-url": "new-page-4.v",
+        "result-description": "Description for New Page 4"
+    },
+    {
+        "result-title-text": "New Page 5",
+        "result-click-url": "https://example.com/new-page-5.html",
+        "result-display-url": "new-page-5.v",
+        "result-description": "Description for New Page 5"
+    },
+    {
+        "result-title-text": "New Page 6",
+        "result-click-url": "https://example.com/new-page-6.html",
+        "result-display-url": "new-page-6.v",
+        "result-description": "Description for New Page 6"
+    },
+    {
+        "result-title-text": "New Page 7",
+        "result-click-url": "https://example.com/new-page-7.html",
+        "result-display-url": "new-page-7.v",
+        "result-description": "Description for New Page 7"
+    },
+    {
+        "result-title-text": "New Page 8",
+        "result-click-url": "https://example.com/new-page-8.html",
+        "result-display-url": "new-page-8.v",
+        "result-description": "Description for New Page 8"
+    },
+    {
+        "result-title-text": "New Page 9",
+        "result-click-url": "https://example.com/new-page-9.html",
+        "result-display-url": "new-page-9.v",
+        "result-description": "Description for New Page 9"
+    },
+    {
+        "result-title-text": "New Page 10",
+        "result-click-url": "https://example.com/new-page-10.html",
+        "result-display-url": "new-page-10.v",
+        "result-description": "Description for New Page 10"
+    },
+    {
+        "result-title-text": "New Page 11",
+        "result-click-url": "https://example.com/new-page-11.html",
+        "result-display-url": "new-page-11.v",
+        "result-description": "Description for New Page 11"
+    },
+    {
+        "result-title-text": "New Page 12",
+        "result-click-url": "https://example.com/new-page-12.html",
+        "result-display-url": "new-page-12.v",
+        "result-description": "Description for New Page 12"
+    },
+    {
+        "result-title-text": "New Page 13",
+        "result-click-url": "https://example.com/new-page-13.html",
+        "result-display-url": "new-page-13.v",
+        "result-description": "Description for New Page 13"
+    },
+    {
+        "result-title-text": "New Page 14",
+        "result-click-url": "https://example.com/new-page-14.html",
+        "result-display-url": "new-page-14.v",
+        "result-description": "Description for New Page 14"
+    },
+    {
+        "result-title-text": "New Page 15",
+        "result-click-url": "https://example.com/new-page-15.html",
+        "result-display-url": "new-page-15.v",
+        "result-description": "Description for New Page 15"
+    },
+    {
+        "result-title-text": "New Page 16",
+        "result-click-url": "https://example.com/new-page-16.html",
+        "result-display-url": "new-page-16.v",
+        "result-description": "Description for New Page 16"
+    },
+    {
+        "result-title-text": "New Page 17",
+        "result-click-url": "https://example.com/new-page-17.html",
+        "result-display-url": "new-page-17.v",
+        "result-description": "Description for New Page 17"
     }
 ]
