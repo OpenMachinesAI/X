@@ -1,0 +1,26 @@
+[
+    {
+        "result-image-src": "path_to_image_1.png",
+        "result-image-alt": "Image 1",
+        "result-title-link": "https://example.com/page1",
+        "result-title-text": "Page 1 Title",
+        "result-url": "https://example.com/page1",
+        "result-description": "Description for Page 1."
+    },
+    {
+        "result-image-src": "path_to_image_2.png",
+        "result-image-alt": "Image 2",
+        "result-title-link": "https://example.com/page2",
+        "result-title-text": "Page 2 Title",
+        "result-url": "https://example.com/page2",
+        "result-description": "Description for Page 2."
+    },
+    {
+        "result-image-src": "path_to_image_3.png",
+        "result-image-alt": "Image 3",
+        "result-title-link": "https://example.com/page3",
+        "result-title-text": "Page 3 Title",
+        "result-url": "https://example.com/page3",
+        "result-description": "Description for Page 3."
+    }
+]
