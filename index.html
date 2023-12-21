@@ -96,31 +96,27 @@
 
         iframe {
             width: 100%;
-            height: 600px; /* Adjust height as needed */
+            height: 600px;
             border: none;
-            display: none;
-        }
-
-        .hidden {
             display: none;
         }
     </style>
 </head>
 <body>
     <div id="tabs">
-        <div class="tab active" id="tab1" onclick="switchTab(this)">Search</div>
+        <div class="tab active" id="tab1" onclick="switchTab(this.id)">Search</div>
         <div class="tab" onclick="addTab()">+</div>
     </div>
     <div id="container">
-        <div id="search-container">
+        <div id="search-container1">
             <div id="logo">VSITES Search</div>
             <div id="search-box">
-                <input type="text" id="question" placeholder="Enter your question" onkeypress="handleKeyPress(event)">
-                <button id="search-button" onclick="getResults()">Search</button>
+                <input type="text" id="question1" placeholder="Enter your question" onkeypress="handleKeyPress(event, '1')">
+                <button id="search-button1" onclick="getResults('1')">Search</button>
             </div>
-            <div id="results"></div>
+            <div id="results1"></div>
         </div>
-        <iframe id="iframe1" class="hidden"></iframe>
+        <iframe id="iframe1"></iframe>
     </div>
 
     <script>
@@ -146,62 +142,78 @@
             });
         }
 
-        function handleKeyPress(event) {
+        function handleKeyPress(event, tabNum) {
             if (event.key === 'Enter') {
-                getResults();
+                getResults(tabNum);
             }
         }
 
-        function openInFrame(url) {
-            const iframeId = currentTab.replace('tab', 'iframe');
+        function openInFrame(tabNum, url) {
+            const iframeId = 'iframe' + tabNum;
             const iframe = document.getElementById(iframeId);
             iframe.style.display = 'block';
             iframe.src = url;
-            document.getElementById('search-container').style.display = 'none';
+            const searchContainerId = 'search-container' + tabNum;
+            document.getElementById(searchContainerId).style.display = 'none';
         }
 
         function addTab() {
-            const newTabId = 'tab' + (++tabCount);
+            tabCount++;
+            const newTabId = 'tab' + tabCount;
             const newIframeId = 'iframe' + tabCount;
+            const newSearchContainerId = 'search-container' + tabCount;
 
             // Create new tab
             const tab = document.createElement("div");
             tab.className = "tab";
             tab.id = newTabId;
             tab.innerText = "Tab " + tabCount;
-            tab.onclick = function () { switchTab(this); };
+            tab.onclick = function() { switchTab(this.id); };
             document.getElementById("tabs").appendChild(tab);
 
             // Create new iframe
             const iframe = document.createElement("iframe");
             iframe.id = newIframeId;
-            iframe.className = 'hidden';
+            iframe.style.display = 'none';
             document.getElementById("container").appendChild(iframe);
 
-            switchTab(tab);
+            // Create new search container
+            const searchContainer = createSearchInterface(tabCount);
+            document.getElementById("container").appendChild(searchContainer);
+
+            switchTab(newTabId);
         }
 
-        function switchTab(tabElement) {
+        function createSearchInterface(tabNum) {
+            const searchContainer = document.createElement("div");
+            searchContainer.id = "search-container" + tabNum;
+            searchContainer.innerHTML = `
+                <div id="logo">VSITES Search</div>
+                <div id="search-box">
+                    <input type="text" id="question${tabNum}" placeholder="Enter your question" onkeypress="handleKeyPress(event, '${tabNum}')">
+                    <button id="search-button${tabNum}" onclick="getResults('${tabNum}')">Search</button>
+                </div>
+                <div id="results${tabNum}"></div>
+            `;
+            return searchContainer;
+        }
+
+        function switchTab(newTabId) {
             Array.from(document.getElementsByClassName("tab")).forEach(tab => {
                 tab.classList.remove("active");
-                const iframeId = tab.id.replace('tab', 'iframe');
-                const iframe = document.getElementById(iframeId);
-                if (iframe) iframe.classList.add('hidden');
+                const tabNum = tab.id.substring(3);
+                document.getElementById('search-container' + tabNum).style.display = 'none';
+                document.getElementById('iframe' + tabNum).style.display = 'none';
             });
-            tabElement.classList.add("active");
-            const iframeId = tabElement.id.replace('tab', 'iframe');
-            const iframe = document.getElementById(iframeId);
-            if (iframe.src) {
-                iframe.classList.remove('hidden');
-            } else {
-                document.getElementById('search-container').style.display = 'block';
-            }
-            currentTab = tabElement.id;
+            document.getElementById(newTabId).classList.add("active");
+            const tabNum = newTabId.substring(3);
+            document.getElementById('search-container' + tabNum).style.display = 'block';
+            currentTab = newTabId;
         }
 
-        async function getResults() {
-            const question = document.getElementById("question").value;
-            const resultsElement = document.getElementById("results");
+        async function getResults(tabNum) {
+            const question = document.getElementById("question" + tabNum).value;
+            const resultsElement = document.getElementById("results" + tabNum);
 
             try {
                 const manifestData = await fetchManifestData();
@@ -211,19 +223,20 @@
                 matchedManifestResults.forEach(item => {
                     resultsElement.innerHTML += `
                         <div class="result">
-                            <h3><a href="#" onclick="event.preventDefault(); openInFrame('${item['result-click-url']}')">${item['result-title-text']}</a></h3>
+                            <h3><a href="#" onclick="event.preventDefault(); openInFrame('${tabNum}', '${item['result-click-url']}')">${item['result-title-text']}</a></h3>
                             <p>${item['result-description']}</p>
                         </div>
                     `;
                 });
 
+                // Fetch Google search results
                 const googleResponse = await fetch(`https://www.googleapis.com/customsearch/v1?key=AIzaSyBYbAgB_KXOHimR46Ox7E7WRl_A36_hmwk&cx=64dacb14df8614f14&q=${question}`);
                 const googleData = await googleResponse.json();
 
                 googleData.items.forEach(item => {
                     resultsElement.innerHTML += `
                         <div class="result">
-                            <h3><a href="#" onclick="event.preventDefault(); openInFrame('${item.link}')">${item.title}</a></h3>
+                            <h3><a href="#" onclick="event.preventDefault(); openInFrame('${tabNum}', '${item.link}')">${item.title}</a></h3>
                             <p>${item.snippet}</p>
                         </div>
                     `;
