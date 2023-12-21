@@ -76,90 +76,92 @@
     </div>
 
     <script>
-        async function fetchManifestData() {
-            try {
-                const response = await fetch('https://alexosthebestnet.github.io/X/VSITES.json');
-                return await response.json();
-            } catch (error) {
-                console.error("Error fetching manifest data:", error);
-                return [];
-            }
+    // Function to fetch data from your custom manifest
+    async function fetchManifestData() {
+        try {
+            const response = await fetch('https://alexosthebestnet.github.io/X/VSITES.json');
+            return await response.json();
+        } catch (error) {
+            console.error("Error fetching manifest data:", error);
+            return [];
         }
-
-        function matchQueryWithManifestData(query, manifestData) {
-            const lowerCaseQuery = query.toLowerCase();
-            return manifestData.filter(item => {
-                const titleMatch = item["result-title-text"].toLowerCase().includes(lowerCaseQuery);
-                const descriptionMatch = item["result-description"].toLowerCase().includes(lowerCaseQuery);
-                return titleMatch || descriptionMatch;
-            });
-        }
-
-         function openLink(url) {
-            window.open(url, '_blank');
-        }
-
-        async function getResults() {
-            const question = document.getElementById("question").value;
-            processSearch(question);
-        }
-
-        async function processSearch(query) {
-            const resultsElement = document.getElementById("results");
-
-            try {
-                const manifestData = await fetchManifestData();
-                const matchedManifestResults = matchQueryWithManifestData(query, manifestData);
-
-                // Display custom results
-                resultsElement.innerHTML = "";
-                matchedManifestResults.forEach(item => {
-                    resultsElement.innerHTML += `
-                        <div class="result">
-                            <h3><a href="${item['result-click-url']}" target="_blank">${item['result-title-text']}</a></h3>
-                            <p>${item['result-description']}</p>
-                        </div>
-                    `;
-                });
-
-                // Fetch and display Google API results
-                const googleResponse = await fetch(`https://www.googleapis.com/customsearch/v1?key=AIzaSyBYbAgB_KXOHimR46Ox7E7WRl_A36_hmwk&cx=64dacb14df8614f14&q&q=${query}`);
-                const googleData = await googleResponse.json();
-
-                googleData.items.forEach(item => {
-                    resultsElement.innerHTML += `
-                        <div class="result">
-                            <h3><a href="${item.link}" target="_blank">${item.title}</a></h3>
-                            <p>${item.snippet}</p>
-                        </div>
-                    `;
-                });
-            } catch (error) {
-                console.error("Error fetching search results:", error);
-                resultsElement.innerHTML = "<p>Sorry, there was a problem retrieving search results.</p>";
-            }
-        }
-
-        // Event listener for search on enter key
-        document.getElementById('question').addEventListener('keyup', function(event) {
-            if (event.key === 'Enter') {
-                getResults();
-            }
-        });
-
-       window.onload = function() {
-    const hash = window.location.hash.substring(1); // Remove the '#' character
-    if (hash) {
-        const decodedQuery = decodeURIComponent(hash);
-        document.getElementById("question").value = decodedQuery;
-        processSearch(decodedQuery);
-        hideSearchElements();
     }
-};
 
-function hideSearchElements() {
-    document.getElementById("search-box").style.display = 'none';
-}
+    // Function to match the query with manifest data
+    function matchQueryWithManifestData(query, manifestData) {
+        const lowerCaseQuery = query.toLowerCase();
+        return manifestData.filter(item => {
+            const titleMatch = item["result-title-text"].toLowerCase().includes(lowerCaseQuery);
+            const descriptionMatch = item["result-description"].toLowerCase().includes(lowerCaseQuery);
+            return titleMatch || descriptionMatch;
+        });
+    }
 
+    // Function to process the search query and display results
+    async function processSearch(query) {
+        const resultsElement = document.getElementById("results");
+
+        try {
+            const manifestData = await fetchManifestData();
+            const matchedManifestResults = matchQueryWithManifestData(query, manifestData);
+
+            // Display custom results
+            resultsElement.innerHTML = "";
+            matchedManifestResults.forEach(item => {
+                resultsElement.innerHTML += `
+                    <div class="result">
+                        <h3><a href="${item['result-click-url']}" target="_blank">${item['result-title-text']}</a></h3>
+                        <p>${item['result-description']}</p>
+                    </div>
+                `;
+            });
+
+            // Fetch and display Google API results
+    const googleResponse = await fetch(`https://www.googleapis.com/customsearch/v1?key=AIzaSyBYbAgB_KXOHimR46Ox7E7WRl_A36_hmwk&cx=64dacb14df8614f14&q&q=${query}`);
+            const googleData = await googleResponse.json();
+
+            googleData.items.forEach(item => {
+                resultsElement.innerHTML += `
+                    <div class="result">
+                        <h3><a href="${item.link}" target="_blank">${item.title}</a></h3>
+                        <p>${item.snippet}</p>
+                    </div>
+                `;
+            });
+        } catch (error) {
+            console.error("Error fetching search results:", error);
+            resultsElement.innerHTML = "<p>Sorry, there was a problem retrieving search results.</p>";
+        }
+    }
+
+    // Function to initiate a search when the search button is clicked
+    function getResults() {
+        const question = document.getElementById("question").value;
+        processSearch(question);
+    }
+
+    // Event listener for search on enter key
+    document.getElementById('question').addEventListener('keyup', function(event) {
+        if (event.key === 'Enter') {
+            getResults();
+        }
+    });
+
+    // Extract query from URL hash and initiate search
+    window.onload = function() {
+        const hash = window.location.hash.substring(1); // Remove the '#' character
+        if (hash) {
+            const decodedQuery = decodeURIComponent(hash);
+            document.getElementById("question").value = decodedQuery;
+            processSearch(decodedQuery);
+            hideSearchElements();
+        }
+    };
+
+    // Function to hide the search box and button
+    function hideSearchElements() {
+        document.getElementById("search-box").style.display = 'none';
+    }
+</script>
 </body>
 </html>
