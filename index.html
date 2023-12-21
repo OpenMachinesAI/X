@@ -35,6 +35,12 @@
             margin-top: 20px;
         }
 
+        #logo {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
         #search-box {
             margin-top: 20px;
         }
@@ -61,7 +67,7 @@
             background-color: #e8eaed;
         }
 
-        #results {
+        #results, iframe {
             text-align: left;
             max-width: 800px;
             margin: 20px auto;
@@ -87,81 +93,34 @@
         .result a:hover {
             text-decoration: underline;
         }
+
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+        }
     </style>
 </head>
 <body>
     <div id="tabs">
-        <div class="tab active" id="tab1" onclick="switchTab(this)">Search</div>
+        <div class="tab active" id="tab1" onclick="switchTab(this, 'search')">Search</div>
         <div class="tab" onclick="addTab()">+</div>
     </div>
     <div id="container">
-        <div id="search-box">
-            <input type="text" id="question" placeholder="Enter your question" onkeypress="handleKeyPress(event)">
-            <button id="search-button" onclick="getResults()">Search</button>
+        <iframe id="iframe1" style="display:none;" onload="updateTabTitle(this)"></iframe>
+        <div id="search-container">
+            <div id="logo">VSITES Search</div>
+            <div id="search-box">
+                <input type="text" id="question" placeholder="Enter your question" onkeypress="handleKeyPress(event)">
+                <button id="search-button" onclick="getResults()">Search</button>
+            </div>
+            <div id="results"></div>
         </div>
-        <div id="results"></div>
     </div>
 
     <script>
         let tabCount = 1;
-        let searchResults = {};
-
-        function addTab() {
-            const newTabId = 'tab' + (++tabCount);
-
-            // Create new tab
-            const tab = document.createElement("div");
-            tab.className = "tab";
-            tab.id = newTabId;
-            tab.innerText = "Search";
-            tab.onclick = function () { switchTab(this); };
-            document.getElementById("tabs").appendChild(tab);
-
-            // Initialize search results for new tab
-            searchResults[newTabId] = '';
-            switchTab(tab);
-        }
-
-        function switchTab(tabElement) {
-            Array.from(document.getElementsByClassName("tab")).forEach(tab => {
-                tab.classList.remove("active");
-            });
-            tabElement.classList.add("active");
-
-            // Update search box and results based on selected tab
-            const tabId = tabElement.id;
-            document.getElementById("question").value = '';
-            document.getElementById("results").innerHTML = searchResults[tabId];
-        }
-
-        function handleKeyPress(event) {
-            if (event.key === 'Enter') {
-                getResults();
-            }
-        }
-
-        async function getResults() {
-            const activeTabId = document.querySelector('.tab.active').id;
-            const question = document.getElementById("question").value;
-            const resultsElement = document.getElementById("results");
-
-            // Fetch manifest data and process results
-            const manifestData = await fetchManifestData();
-            const matchedResults = matchQueryWithManifestData(question, manifestData);
-
-            resultsElement.innerHTML = '';
-            matchedResults.forEach(item => {
-                resultsElement.innerHTML += `
-                    <div class="result">
-                        <h3><a href="${item['result-click-url']}">${item['result-title-text']}</a></h3>
-                        <p>${item['result-description']}</p>
-                    </div>
-                `;
-            });
-
-            // Save results for current tab
-            searchResults[activeTabId] = resultsElement.innerHTML;
-        }
+        let currentTab = 'tab1';
 
         async function fetchManifestData() {
             try {
@@ -182,8 +141,109 @@
             });
         }
 
-        // Initialize search results for first tab
-        searchResults['tab1'] = '';
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                getResults();
+            }
+        }
+
+        function openInFrame(url) {
+            const iframeId = currentTab.replace('tab', 'iframe');
+            const iframe = document.getElementById(iframeId);
+            iframe.style.display = 'block';
+            iframe.src = url;
+            document.getElementById('search-container').style.display = 'none';
+        }
+
+        function addTab(url = 'about:blank') {
+            const tabId = 'tab' + (++tabCount);
+            const iframeId = 'iframe' + tabCount;
+
+            // Create new tab
+            const tab = document.createElement("div");
+            tab.className = "tab";
+            tab.id = tabId;
+            tab.innerText = "Tab " + tabCount;
+            tab.onclick = function () { switchTab(this, url); };
+            document.getElementById("tabs").appendChild(tab);
+
+            // Create new iframe
+            const iframe = document.createElement("iframe");
+            iframe.id = iframeId;
+            iframe.style.display = 'none';
+            iframe.onload = function () { updateTabTitle(this); };
+            document.getElementById("container").appendChild(iframe);
+
+            switchTab(tab, url);
+        }
+
+        function switchTab(tabElement, url = 'search') {
+            Array.from(document.getElementsByClassName("tab")).forEach(tab => {
+                tab.classList.remove("active");
+                const iframeId = tab.id.replace('tab', 'iframe');
+                const iframe = document.getElementById(iframeId);
+                if (iframe) iframe.style.display = 'none';
+            });
+            tabElement.classList.add("active");
+            currentTab = tabElement.id;
+
+            const iframeId = currentTab.replace('tab', 'iframe');
+            const iframe = document.getElementById(iframeId);
+            if (url === 'search') {
+                iframe.style.display = 'none';
+                document.getElementById('search-container').style.display = 'block';
+            } else {
+                iframe.style.display = 'block';
+                iframe.src = url;
+                document.getElementById('search-container').style.display = 'none';
+            }
+        }
+
+        function updateTabTitle(iframe) {
+            const tabId = iframe.id.replace('iframe', 'tab');
+            const tab = document.getElementById(tabId);
+            try {
+                const title = iframe.contentDocument.title.substring(0, 25);
+                tab.innerText = title || 'Home';
+            } catch (e) {
+                tab.innerText = 'Home';
+            }
+        }
+
+        async function getResults() {
+            const question = document.getElementById("question").value;
+            const resultsElement = document.getElementById("results");
+
+            try {
+                const manifestData = await fetchManifestData();
+                const matchedManifestResults = matchQueryWithManifestData(question, manifestData);
+
+                resultsElement.innerHTML = "";
+                matchedManifestResults.forEach(item => {
+                    resultsElement.innerHTML += `
+                        <div class="result">
+                            <h3><a href="#" onclick="event.preventDefault(); openInFrame('${item['result-click-url']}')">${item['result-title-text']}</a></h3>
+                            <p>${item['result-description']}</p>
+                        </div>
+                    `;
+                });
+
+                const googleResponse = await fetch(`https://www.googleapis.com/customsearch/v1?key=YOUR_API_KEY&cx=YOUR_CX&q=${question}`);
+                const googleData = await googleResponse.json();
+
+                googleData.items.forEach(item => {
+                    resultsElement.innerHTML += `
+                        <div class="result">
+                            <h3><a href="#" onclick="event.preventDefault(); openInFrame('${item.link}')">${item.title}</a></h3>
+                            <p>${item.snippet}</p>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                console.error("Error fetching search results:", error);
+                resultsElement.innerHTML = "<p>Sorry, there was a problem retrieving search results.</p>";
+            }
+        }
     </script>
 </body>
 </html>
