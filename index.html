@@ -3,77 +3,65 @@
 <head>
     <title>VSITES Search</title>
     <style>
-body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-    margin: 0;
-    padding: 0;
-    background-color: #f8f9fa;
-}
-
-#container {
-    margin-top: 100px;
-}
-
-#logo {
-    font-size: 36px;
-    font-weight: bold;
-    margin-bottom: 20px;
-}
-
-#search-box {
-    margin-top: 20px;
-}
-
-#question {
-    width: 400px;
-    padding: 10px;
-    font-size: 16px;
-    border: 1px solid #dfe1e5;
-    border-radius: 20px;
-    margin-bottom: 10px;
-}
-
-#search-button {
-    padding: 10px 20px;
-    font-size: 16px;
-    border-radius: 5px;
-    border: none;
-    background-color: #f8f9fa;
-    cursor: pointer;
-}
-
-#search-button:hover {
-    background-color: #e8eaed;
-}
-
-#results, #result-frame {
-    text-align: left;
-    max-width: 800px;
-    margin: 20px auto;
-    border: none;
-}
-
-.result {
-    margin-bottom: 20px;
-    padding: 10px;
-    background-color: rgba(255, 255, 255, 0.9);
-    border-radius: 5px;
-}
-
-.result h3 {
-    color: #1a0dab;
-}
-
-.result a {
-    text-decoration: none;
-    color: #1a0dab;
-}
-
-.result a:hover {
-    text-decoration: underline;
-}
-
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+        }
+        #container {
+            margin-top: 100px;
+        }
+        #logo {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        #search-box {
+            margin-top: 20px;
+        }
+        #question {
+            width: 400px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #dfe1e5;
+            border-radius: 20px;
+            margin-bottom: 10px;
+        }
+        #search-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: none;
+            background-color: #f8f9fa;
+            cursor: pointer;
+        }
+        #search-button:hover {
+            background-color: #e8eaed;
+        }
+        #results, #result-frame {
+            text-align: left;
+            max-width: 800px;
+            margin: 20px auto;
+            border: none;
+        }
+        .result {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 5px;
+        }
+        .result h3 {
+            color: #1a0dab;
+        }
+        .result a {
+            text-decoration: none;
+            color: #1a0dab;
+        }
+        .result a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -88,69 +76,98 @@ body {
     </div>
 
     <script>
-async function fetchManifestData() {
-    try {
-        const response = await fetch('https://alexosthebestnet.github.io/X/VSITES.json');
-        return await response.json();
-    } catch (error) {
-        console.error("Error fetching manifest data:", error);
-        return [];
-    }
-}
+        async function fetchManifestData() {
+            try {
+                const response = await fetch('https://alexosthebestnet.github.io/X/VSITES.json');
+                return await response.json();
+            } catch (error) {
+                console.error("Error fetching manifest data:", error);
+                return [];
+            }
+        }
 
-function matchQueryWithManifestData(query, manifestData) {
-    const lowerCaseQuery = query.toLowerCase();
-    return manifestData.filter(item => {
-        const titleMatch = item["result-title-text"].toLowerCase().includes(lowerCaseQuery);
-        const descriptionMatch = item["result-description"].toLowerCase().includes(lowerCaseQuery);
-        return titleMatch || descriptionMatch;
-    });
-}
+        function matchQueryWithManifestData(query, manifestData) {
+            const lowerCaseQuery = query.toLowerCase();
+            return manifestData.filter(item => {
+                const titleMatch = item["result-title-text"].toLowerCase().includes(lowerCaseQuery);
+                const descriptionMatch = item["result-description"].toLowerCase().includes(lowerCaseQuery);
+                return titleMatch || descriptionMatch;
+            });
+        }
 
-function openInFrame(url) {
-    document.getElementById("results").style.display = 'none';
-    const frame = document.getElementById("result-frame");
-    frame.style.display = 'block';
-    frame.src = url;
-}
+        function openInFrame(url) {
+            const knownSites = ['google.com', /* add other known sites here */];
+            const matchedSite = knownSites.find(site => url.includes(site));
 
-async function getResults() {
-    const question = document.getElementById("question").value;
-    const resultsElement = document.getElementById("results");
+            if (matchedSite) {
+                window.open(url, '_blank');
+            } else {
+                document.getElementById("results").style.display = 'none';
+                const frame = document.getElementById("result-frame");
+                frame.style.display = 'block';
+                frame.src = url;
+            }
+        }
 
-    try {
-        const manifestData = await fetchManifestData();
-        const matchedManifestResults = matchQueryWithManifestData(question, manifestData);
+        async function getResults() {
+            const question = document.getElementById("question").value;
+            processSearch(question);
+        }
 
-        // Display custom results
-        resultsElement.innerHTML = "";
-        matchedManifestResults.forEach(item => {
-            resultsElement.innerHTML += `
-                <div class="result">
-                    <h3><a href="${item['result-click-url']}" target="_blank">${item['result-title-text']}</a></h3>
-                    <p>${item['result-description']}</p>
-                </div>
-            `;
+        async function processSearch(query) {
+            const resultsElement = document.getElementById("results");
+            resultsElement.style.display = 'block';
+            document.getElementById("result-frame").style.display = 'none';
+
+            try {
+                const manifestData = await fetchManifestData();
+                const matchedManifestResults = matchQueryWithManifestData(query, manifestData);
+
+                // Display custom results
+                resultsElement.innerHTML = "";
+                matchedManifestResults.forEach(item => {
+                    resultsElement.innerHTML += `
+                        <div class="result">
+                            <h3><a href="${item['result-click-url']}" onclick="event.preventDefault(); openInFrame('${item['result-click-url']}')">${item['result-title-text']}</a></h3>
+                            <p>${item['result-description']}</p>
+                        </div>
+                    `;
+                });
+
+                // Fetch and display Google API results
+                const googleResponse = await fetch(`https://www.googleapis.com/customsearch/v1?key=AIzaSyBYbAgB_KXOHimR46Ox7E7WRl_A36_hmwk&cx=64dacb14df8614f14&q&q=${query}`);
+                const googleData = await googleResponse.json();
+
+                googleData.items.forEach(item => {
+                    resultsElement.innerHTML += `
+                        <div class="result">
+                            <h3><a href="${item.link}" onclick="event.preventDefault(); openInFrame('${item.link}')">${item.title}</a></h3>
+                            <p>${item.snippet}</p>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                console.error("Error fetching search results:", error);
+                resultsElement.innerHTML = "<p>Sorry, there was a problem retrieving search results.</p>";
+            }
+        }
+
+        // Event listener for search on enter key
+        document.getElementById('question').addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                getResults();
+            }
         });
 
-        // Fetch and display Google API results
-        const googleResponse = await fetch(`https://www.googleapis.com/customsearch/v1?key=AIzaSyBYbAgB_KXOHimR46Ox7E7WRl_A36_hmwk&cx=64dacb14df8614f14&q&q=${question}`);
-        const googleData = await googleResponse.json();
-
-        googleData.items.forEach(item => {
-            resultsElement.innerHTML += `
-                <div class="result">
-                    <h3><a href="${item.link}" onclick="event.preventDefault(); openInFrame('${item.link}')">${item.title}</a></h3>
-                    <p>${item.snippet}</p>
-                </div>
-            `;
-        });
-    } catch (error) {
-        console.error("Error fetching search results:", error);
-        resultsElement.innerHTML = "<p>Sorry, there was a problem retrieving search results.</p>";
-    }
-}
-
+        // Extract query from URL path and initiate search
+        window.onload = function() {
+            const path = window.location.pathname.split('/');
+            const query = path[path.length - 1];
+            if (query) {
+                document.getElementById("question").value = query;
+                processSearch(query);
+            }
+        };
     </script>
 </body>
 </html>
