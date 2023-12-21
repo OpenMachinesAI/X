@@ -1,1 +1,137 @@
-VSITES
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VSITES Search Results</title>
+    <style>
+        body {
+            font-family: arial, sans-serif;
+            background: #fff;
+            margin: 0;
+            padding: 0;
+        }
+
+        .search-result {
+            border: 1px solid #dfe1e5;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px auto;
+            margin-bottom: 30px;
+            max-width: 600px;
+            opacity: 0;
+            transform: translateY(-20px);
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .result-title a {
+            text-decoration: none;
+            color: #1a0dab;
+            font-size: 20px;
+        }
+
+        .result-display-url {
+            color: #202124;
+            font-size: 14px;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .result-description {
+            color: #4d5156;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #2d2d2d;
+            }
+
+            .search-result {
+                background: #303134;
+                border-color: #5f6368;
+            }
+
+            .result-title a {
+                color: #8ab4f8;
+            }
+
+            .result-display-url, .result-description {
+                color: #e8eaed;
+            }
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #vsite-title {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 24px;
+            color: #1a0dab;
+        }
+    </style>
+</head>
+<body>
+    <div id="results-container">
+        <!-- Results will be added here by the JavaScript -->
+    </div>
+
+    <script>
+        window.onload = function() {
+            const queryParams = new URLSearchParams(window.location.search);
+            const searchQuery = queryParams.get('q');
+
+            if (searchQuery) {
+                document.getElementById('results-container').innerHTML = `<div id="vsite-title">VSITES: from the intranet</div>`;
+                fetch('https://alexosthebestnet.github.io/X/VSITES.json')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok: ' + response.statusText);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        displayVSITES(data, searchQuery);
+                    })
+                    .catch(error => {
+                        console.error('There has been a problem with your fetch operation:', error.message);
+                    });
+            }
+        };
+
+        function displayVSITES(vsites, query) {
+            const container = document.getElementById('results-container');
+            let resultsFound = false;
+
+            vsites.forEach((vsite, index) => {
+                if (vsite['result-title-text'].toLowerCase().includes(query.toLowerCase()) || 
+                    vsite['result-description'].toLowerCase().includes(query.toLowerCase())) {
+                    resultsFound = true;
+                    setTimeout(() => {
+                        const resultDiv = document.createElement('div');
+                        resultDiv.className = 'search-result';
+                        resultDiv.innerHTML = `
+                            <div class="result-title">
+                                <a href="${vsite['result-click-url']}" target="_self">${vsite['result-title-text']}</a>
+                            </div>
+                            <div class="result-display-url">${vsite['result-display-url']}</div>
+                            <div class="result-description">${vsite['result-description']}</div>
+                        `;
+                        container.appendChild(resultDiv);
+                    }, index * 300); // Delay for the animation effect
+                }
+            });
+
+            if (!resultsFound) {
+                document.getElementById('vsite-title').textContent = '';
+            }
+        }
+    </script>
+</body>
+</html>
