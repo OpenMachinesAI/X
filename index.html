@@ -147,14 +147,18 @@
             }
         });
 
-        // Extract query from URL hash and initiate search
         window.onload = function() {
-            const hash = window.location.hash.substring(1); // Remove the '#' character
-            if (hash) {
-                document.getElementById("question").value = hash;
-                processSearch(hash);
-            }
-        };
+    const hash = window.location.hash.substring(1); // Remove the '#' character
+    if (hash) {
+        document.getElementById("question").value = hash;
+        processSearch(hash);
+        hideSearchBar();
+    }
+};
+
+function hideSearchBar() {
+    document.getElementById("search-box").style.display = 'none';
+}
 </script>
 </body>
 </html>
