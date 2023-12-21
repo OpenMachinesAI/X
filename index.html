@@ -96,18 +96,22 @@
 
         iframe {
             width: 100%;
-            height: 600px;
+            height: 600px; /* Adjust height as needed */
             border: none;
+            display: none;
+        }
+
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
     <div id="tabs">
-        <div class="tab active" id="tab1" onclick="switchTab(this, 'search')">Search</div>
+        <div class="tab active" id="tab1" onclick="switchTab(this)">Search</div>
         <div class="tab" onclick="addTab()">+</div>
     </div>
     <div id="container">
-        <iframe id="iframe1" style="display:none;" onload="updateTabTitle(this)"></iframe>
         <div id="search-container">
             <div id="logo">VSITES Search</div>
             <div id="search-box">
@@ -116,6 +120,7 @@
             </div>
             <div id="results"></div>
         </div>
+        <iframe id="iframe1" class="hidden"></iframe>
     </div>
 
     <script>
@@ -155,59 +160,43 @@
             document.getElementById('search-container').style.display = 'none';
         }
 
-        function addTab(url = 'about:blank') {
-            const tabId = 'tab' + (++tabCount);
-            const iframeId = 'iframe' + tabCount;
+        function addTab() {
+            const newTabId = 'tab' + (++tabCount);
+            const newIframeId = 'iframe' + tabCount;
 
             // Create new tab
             const tab = document.createElement("div");
             tab.className = "tab";
-            tab.id = tabId;
+            tab.id = newTabId;
             tab.innerText = "Tab " + tabCount;
-            tab.onclick = function () { switchTab(this, url); };
+            tab.onclick = function () { switchTab(this); };
             document.getElementById("tabs").appendChild(tab);
 
             // Create new iframe
             const iframe = document.createElement("iframe");
-            iframe.id = iframeId;
-            iframe.style.display = 'none';
-            iframe.onload = function () { updateTabTitle(this); };
+            iframe.id = newIframeId;
+            iframe.className = 'hidden';
             document.getElementById("container").appendChild(iframe);
 
-            switchTab(tab, url);
+            switchTab(tab);
         }
 
-        function switchTab(tabElement, url = 'search') {
+        function switchTab(tabElement) {
             Array.from(document.getElementsByClassName("tab")).forEach(tab => {
                 tab.classList.remove("active");
                 const iframeId = tab.id.replace('tab', 'iframe');
                 const iframe = document.getElementById(iframeId);
-                if (iframe) iframe.style.display = 'none';
+                if (iframe) iframe.classList.add('hidden');
             });
             tabElement.classList.add("active");
-            currentTab = tabElement.id;
-
-            const iframeId = currentTab.replace('tab', 'iframe');
+            const iframeId = tabElement.id.replace('tab', 'iframe');
             const iframe = document.getElementById(iframeId);
-            if (url === 'search') {
-                iframe.style.display = 'none';
-                document.getElementById('search-container').style.display = 'block';
+            if (iframe.src) {
+                iframe.classList.remove('hidden');
             } else {
-                iframe.style.display = 'block';
-                iframe.src = url;
-                document.getElementById('search-container').style.display = 'none';
+                document.getElementById('search-container').style.display = 'block';
             }
-        }
-
-        function updateTabTitle(iframe) {
-            const tabId = iframe.id.replace('iframe', 'tab');
-            const tab = document.getElementById(tabId);
-            try {
-                const title = iframe.contentDocument.title.substring(0, 25);
-                tab.innerText = title || 'Home';
-            } catch (e) {
-                tab.innerText = 'Home';
-            }
+            currentTab = tabElement.id;
         }
 
         async function getResults() {
