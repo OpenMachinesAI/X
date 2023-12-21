@@ -109,9 +109,22 @@
     <script>
         let tabCount = 1;
 
+        function createSearchInterface(id) {
+            const searchContainer = document.createElement('div');
+            searchContainer.id = 'search-container-' + id;
+            searchContainer.innerHTML = `
+                <div id="logo">VSITES Search</div>
+                <div id="search-box">
+                    <input type="text" id="question-${id}" placeholder="Enter your question" onkeypress="handleKeyPress(event, '${id}')">
+                    <button id="search-button-${id}" onclick="getResults('${id}')">Search</button>
+                </div>
+                <div id="results-${id}"></div>
+            `;
+            return searchContainer;
+        }
+
         function addTab() {
             const newTabId = 'tab' + (++tabCount);
-            const newIframeId = 'iframe' + tabCount;
 
             // Create new tab
             const tab = document.createElement("div");
@@ -121,12 +134,10 @@
             tab.onclick = function () { switchTab(this); };
             document.getElementById("tabs").insertBefore(tab, document.getElementById("tabs").lastChild);
 
-            // Create new iframe
-            const iframe = document.createElement("iframe");
-            iframe.id = newIframeId;
-            iframe.src = 'about:blank';
-            iframe.onload = function () { updateTabTitle(this); };
-            document.getElementById("container").appendChild(iframe);
+            // Create new search interface
+            const container = document.getElementById("container");
+            const searchInterface = createSearchInterface(tabCount);
+            container.appendChild(searchInterface);
 
             switchTab(tab);
         }
@@ -134,12 +145,25 @@
         function switchTab(tabElement) {
             Array.from(document.getElementsByClassName("tab")).forEach(tab => {
                 tab.classList.remove("active");
-                document.getElementById(tab.id.replace('tab', 'iframe')).style.display = 'none';
+                const searchContainerId = 'search-container-' + tab.id.substring(3);
+                const searchContainer = document.getElementById(searchContainerId);
+                if (searchContainer) {
+                    searchContainer.style.display = 'none';
+                }
             });
             tabElement.classList.add("active");
-            document.getElementById(tabElement.id.replace('tab', 'iframe')).style.display = 'block';
+            const activeSearchContainerId = 'search-container-' + tabElement.id.substring(3);
+            const activeSearchContainer = document.getElementById(activeSearchContainerId);
+            if (activeSearchContainer) {
+                activeSearchContainer.style.display = 'block';
+            }
         }
 
+        function handleKeyPress(event, id) {
+            if (event.key === 'Enter') {
+                getResults(id);
+            }
+        }
         function updateTabTitle(iframe) {
             const tabId = iframe.id.replace('iframe', 'tab');
             const tab = document.getElementById(tabId);
