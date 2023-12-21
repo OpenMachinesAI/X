@@ -95,18 +95,8 @@
             });
         }
 
-        function openInFrame(url) {
-            const knownSites = ['google.com', /* add other known sites here */];
-            const matchedSite = knownSites.find(site => url.includes(site));
-
-            if (matchedSite) {
-                window.open(url, '_blank');
-            } else {
-                document.getElementById("results").style.display = 'none';
-                const frame = document.getElementById("result-frame");
-                frame.style.display = 'block';
-                frame.src = url;
-            }
+         function openLink(url) {
+            window.open(url, '_blank');
         }
 
         async function getResults() {
@@ -116,8 +106,6 @@
 
         async function processSearch(query) {
             const resultsElement = document.getElementById("results");
-            resultsElement.style.display = 'block';
-            document.getElementById("result-frame").style.display = 'none';
 
             try {
                 const manifestData = await fetchManifestData();
@@ -128,7 +116,7 @@
                 matchedManifestResults.forEach(item => {
                     resultsElement.innerHTML += `
                         <div class="result">
-                            <h3><a href="${item['result-click-url']}" onclick="event.preventDefault(); openInFrame('${item['result-click-url']}')">${item['result-title-text']}</a></h3>
+                            <h3><a href="${item['result-click-url']}" target="_blank">${item['result-title-text']}</a></h3>
                             <p>${item['result-description']}</p>
                         </div>
                     `;
@@ -141,7 +129,7 @@
                 googleData.items.forEach(item => {
                     resultsElement.innerHTML += `
                         <div class="result">
-                            <h3><a href="${item.link}" onclick="event.preventDefault(); openInFrame('${item.link}')">${item.title}</a></h3>
+                            <h3><a href="${item.link}" target="_blank">${item.title}</a></h3>
                             <p>${item.snippet}</p>
                         </div>
                     `;
@@ -159,15 +147,14 @@
             }
         });
 
-        // Extract query from URL path and initiate search
+        // Extract query from URL hash and initiate search
         window.onload = function() {
-            const path = window.location.pathname.split('/');
-            const query = path[path.length - 1];
-            if (query) {
-                document.getElementById("question").value = query;
-                processSearch(query);
+            const hash = window.location.hash.substring(1); // Remove the '#' character
+            if (hash) {
+                document.getElementById("question").value = hash;
+                processSearch(hash);
             }
         };
-    </script>
+</script>
 </body>
 </html>
