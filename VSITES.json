@@ -12,9 +12,9 @@
         "result-description": "Classic NES Mario running in VSites. Very fun."
     },
     {
-        "result-title-text": "Page 3 Title",
-        "result-click-url": "https://example.com/page3",
-        "result-display-url": "https://example.com/page3",
-        "result-description": "Description for Page 3."
+        "result-title-text": "Maze",
+        "result-click-url": "https://alexosthebestnet.github.io/X/maze",
+        "result-display-url": "maze.v",
+        "result-description": "just a 3D maze bro."
     }
 ]
