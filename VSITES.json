@@ -6,10 +6,10 @@
         "result-description": "The First Site helps you learn about the VSite system"
     },
     {
-        "result-title-text": "Page 2 Title",
-        "result-click-url": "https://example.com/page2",
-        "result-display-url": "https://example.com/page2",
-        "result-description": "Description for Page 2."
+        "result-title-text": "Mario",
+        "result-click-url": "https://alexosthebestnet.github.io/X/mario.html",
+        "result-display-url": "mario.v",
+        "result-description": "Classic NES Mario running in VSites. Very fun."
     },
     {
         "result-title-text": "Page 3 Title",
