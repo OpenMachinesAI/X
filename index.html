@@ -3,154 +3,221 @@
 <head>
     <title>VSITES Search</title>
     <style>
-body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-    margin: 0;
-    padding: 0;
-    background-color: #f8f9fa;
-}
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+        }
 
-#container {
-    margin-top: 100px;
-}
+        #tabs {
+            display: flex;
+            justify-content: center;
+            background-color: #ddd;
+            padding: 5px;
+        }
 
-#logo {
-    font-size: 36px;
-    font-weight: bold;
-    margin-bottom: 20px;
-}
+        .tab {
+            margin: 0 5px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            cursor: pointer;
+        }
 
-#search-box {
-    margin-top: 20px;
-}
+        .tab.active {
+            background-color: #fff;
+            border-bottom: none;
+        }
 
-#question {
-    width: 400px;
-    padding: 10px;
-    font-size: 16px;
-    border: 1px solid #dfe1e5;
-    border-radius: 20px;
-    margin-bottom: 10px;
-}
+        #container {
+            margin-top: 20px;
+        }
 
-#search-button {
-    padding: 10px 20px;
-    font-size: 16px;
-    border-radius: 5px;
-    border: none;
-    background-color: #f8f9fa;
-    cursor: pointer;
-}
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+            display: none;
+        }
 
-#search-button:hover {
-    background-color: #e8eaed;
-}
+        /* Additional styles for search box and results */
+        #search-box {
+            margin-top: 20px;
+        }
 
-#results, #result-frame {
-    text-align: left;
-    max-width: 800px;
-    margin: 20px auto;
-    border: none;
-}
+        #question {
+            width: 400px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #dfe1e5;
+            border-radius: 20px;
+            margin-bottom: 10px;
+        }
 
-.result {
-    margin-bottom: 20px;
-    padding: 10px;
-    background-color: rgba(255, 255, 255, 0.9);
-    border-radius: 5px;
-}
+        #search-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: none;
+            background-color: #f8f9fa;
+            cursor: pointer;
+        }
 
-.result h3 {
-    color: #1a0dab;
-}
+        #search-button:hover {
+            background-color: #e8eaed;
+        }
 
-.result a {
-    text-decoration: none;
-    color: #1a0dab;
-}
+        #results, iframe {
+            text-align: left;
+            max-width: 800px;
+            margin: 20px auto;
+            border: none;
+        }
 
-.result a:hover {
-    text-decoration: underline;
-}
+        .result {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 5px;
+        }
 
+        .result h3 {
+            color: #1a0dab;
+        }
+
+        .result a {
+            text-decoration: none;
+            color: #1a0dab;
+        }
+
+        .result a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
+    <div id="tabs">
+        <div class="tab active" id="tab1" onclick="switchTab(this)">Home</div>
+        <div class="tab" onclick="addTab()">+</div>
+    </div>
     <div id="container">
-        <div id="logo">VSITES Search</div>
-        <div id="search-box">
-            <input type="text" id="question" placeholder="Enter your question">
-            <button id="search-button" onclick="getResults()">Search</button>
-        </div>
-        <iframe id="result-frame" style="display:none;"></iframe>
-        <div id="results"></div>
+        <iframe id="iframe1" src="about:blank" onload="updateTabTitle(this)"></iframe>
     </div>
 
     <script>
-async function fetchManifestData() {
-    try {
-        const response = await fetch('https://alexosthebestnet.github.io/X/VSITES.json');
-        return await response.json();
-    } catch (error) {
-        console.error("Error fetching manifest data:", error);
-        return [];
-    }
-}
+        let tabCount = 1;
 
-function matchQueryWithManifestData(query, manifestData) {
-    const lowerCaseQuery = query.toLowerCase();
-    return manifestData.filter(item => {
-        const titleMatch = item["result-title-text"].toLowerCase().includes(lowerCaseQuery);
-        const descriptionMatch = item["result-description"].toLowerCase().includes(lowerCaseQuery);
-        return titleMatch || descriptionMatch;
-    });
-}
+        function addTab() {
+            const newTabId = 'tab' + (++tabCount);
+            const newIframeId = 'iframe' + tabCount;
 
-function openInFrame(url) {
-    document.getElementById("results").style.display = 'none';
-    const frame = document.getElementById("result-frame");
-    frame.style.display = 'block';
-    frame.src = url;
-}
+            // Create new tab
+            const tab = document.createElement("div");
+            tab.className = "tab";
+            tab.id = newTabId;
+            tab.innerText = "Home";
+            tab.onclick = function () { switchTab(this); };
+            document.getElementById("tabs").insertBefore(tab, document.getElementById("tabs").lastChild);
 
-async function getResults() {
-    const question = document.getElementById("question").value;
-    const resultsElement = document.getElementById("results");
+            // Create new iframe
+            const iframe = document.createElement("iframe");
+            iframe.id = newIframeId;
+            iframe.src = 'about:blank';
+            iframe.onload = function () { updateTabTitle(this); };
+            document.getElementById("container").appendChild(iframe);
 
-    try {
-        const manifestData = await fetchManifestData();
-        const matchedManifestResults = matchQueryWithManifestData(question, manifestData);
+            switchTab(tab);
+        }
 
-        // Display custom results
-        resultsElement.innerHTML = "";
-        matchedManifestResults.forEach(item => {
-            resultsElement.innerHTML += `
-                <div class="result">
-                    <h3><a href="${item['result-click-url']}" target="_blank">${item['result-title-text']}</a></h3>
-                    <p>${item['result-description']}</p>
-                </div>
-            `;
-        });
+        function switchTab(tabElement) {
+            Array.from(document.getElementsByClassName("tab")).forEach(tab => {
+                tab.classList.remove("active");
+                document.getElementById(tab.id.replace('tab', 'iframe')).style.display = 'none';
+            });
+            tabElement.classList.add("active");
+            document.getElementById(tabElement.id.replace('tab', 'iframe')).style.display = 'block';
+        }
 
-        // Fetch and display Google API results
-        const googleResponse = await fetch(`https://www.googleapis.com/customsearch/v1?key=AIzaSyBYbAgB_KXOHimR46Ox7E7WRl_A36_hmwk&cx=64dacb14df8614f14&q&q=${question}`);
-        const googleData = await googleResponse.json();
+        function updateTabTitle(iframe) {
+            const tabId = iframe.id.replace('iframe', 'tab');
+            const tab = document.getElementById(tabId);
+            try {
+                const title = iframe.contentDocument.title.substring(0, 25);
+                tab.innerText = title || 'Home';
+            } catch (e) {
+                tab.innerText = 'Home';
+            }
+        }
 
-        googleData.items.forEach(item => {
-            resultsElement.innerHTML += `
-                <div class="result">
-                    <h3><a href="${item.link}" onclick="event.preventDefault(); openInFrame('${item.link}')">${item.title}</a></h3>
-                    <p>${item.snippet}</p>
-                </div>
-            `;
-        });
-    } catch (error) {
-        console.error("Error fetching search results:", error);
-        resultsElement.innerHTML = "<p>Sorry, there was a problem retrieving search results.</p>";
-    }
-}
+        // Additional JavaScript for search functionality
+        async function fetchManifestData() {
+            try {
+                const response = await fetch('https://alexosthebestnet.github.io/X/VSITES.json');
+                return await response.json();
+            } catch (error) {
+                console.error("Error fetching manifest data:", error);
+                return [];
+            }
+        }
 
+        function matchQueryWithManifestData(query, manifestData) {
+            const lowerCaseQuery = query.toLowerCase();
+            return manifestData.filter(item => {
+                const titleMatch = item["result-title-text"].toLowerCase().includes(lowerCaseQuery);
+                const descriptionMatch = item["result-description"].toLowerCase().includes(lowerCaseQuery);
+                return titleMatch || descriptionMatch;
+            });
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                getResults();
+            }
+        }
+
+        function openInFrame(url) {
+            const activeTab = document.querySelector('.tab.active');
+            const activeIframe = document.getElementById(activeTab.id.replace('tab', 'iframe'));
+            activeIframe.src = url;
+        }
+
+        async function getResults() {
+            const question = document.getElementById("question").value;
+            const activeTab = document.querySelector('.tab.active');
+            const resultsElement = document.getElementById(activeTab.id.replace('tab', 'results'));
+
+            try {
+                const manifestData = await fetchManifestData();
+                const matchedManifestResults = matchQueryWithManifestData(question, manifestData);
+
+                resultsElement.innerHTML = "";
+                matchedManifestResults.forEach(item => {
+                    resultsElement.innerHTML += `
+                        <div class="result">
+                            <h3><a href="#" onclick="event.preventDefault(); openInFrame('${item['result-click-url']}')">${item['result-title-text']}</a></h3>
+                            <p>${item['result-description']}</p>
+                        </div>
+                    `;
+                });
+
+                const googleResponse = await fetch(`https://www.googleapis.com/customsearch/v1?key=YOUR_API_KEY&cx=YOUR_CX&q=${question}`);
+                const googleData = await googleResponse.json();
+
+                googleData.items.forEach(item => {
+                    resultsElement.innerHTML += `
+                        <div class="result">
+                            <h3><a href="#" onclick="event.preventDefault(); openInFrame('${item.link}')">${item.title}</a></h3>
+                            <p>${item.snippet}</p>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                console.error("Error fetching search results:", error);
+                resultsElement.innerHTML = "<p>Sorry, there was a problem retrieving search results.</p>";
+            }
+        }
     </script>
 </body>
 </html>
