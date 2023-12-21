@@ -1,137 +1,156 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VSITES Search Results</title>
+    <title>VSITES Search</title>
     <style>
-        body {
-            font-family: arial, sans-serif;
-            background: #fff;
-            margin: 0;
-            padding: 0;
-        }
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+    background-color: #f8f9fa;
+}
 
-        .search-result {
-            border: 1px solid #dfe1e5;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px auto;
-            margin-bottom: 30px;
-            max-width: 600px;
-            opacity: 0;
-            transform: translateY(-20px);
-            animation: fadeIn 0.5s ease-out forwards;
-        }
+#container {
+    margin-top: 100px;
+}
 
-        .result-title a {
-            text-decoration: none;
-            color: #1a0dab;
-            font-size: 20px;
-        }
+#logo {
+    font-size: 36px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
 
-        .result-display-url {
-            color: #202124;
-            font-size: 14px;
-            display: block;
-            margin-bottom: 2px;
-        }
+#search-box {
+    margin-top: 20px;
+}
 
-        .result-description {
-            color: #4d5156;
-            font-size: 14px;
-            margin-top: 4px;
-        }
+#question {
+    width: 400px;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #dfe1e5;
+    border-radius: 20px;
+    margin-bottom: 10px;
+}
 
-        @media (prefers-color-scheme: dark) {
-            body {
-                background: #2d2d2d;
-            }
+#search-button {
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 5px;
+    border: none;
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
 
-            .search-result {
-                background: #303134;
-                border-color: #5f6368;
-            }
+#search-button:hover {
+    background-color: #e8eaed;
+}
 
-            .result-title a {
-                color: #8ab4f8;
-            }
+#results, #result-frame {
+    text-align: left;
+    max-width: 800px;
+    margin: 20px auto;
+    border: none;
+}
 
-            .result-display-url, .result-description {
-                color: #e8eaed;
-            }
-        }
+.result {
+    margin-bottom: 20px;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 5px;
+}
 
-        @keyframes fadeIn {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+.result h3 {
+    color: #1a0dab;
+}
 
-        #vsite-title {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 24px;
-            color: #1a0dab;
-        }
+.result a {
+    text-decoration: none;
+    color: #1a0dab;
+}
+
+.result a:hover {
+    text-decoration: underline;
+}
+
     </style>
 </head>
 <body>
-    <div id="results-container">
-        <!-- Results will be added here by the JavaScript -->
+    <div id="container">
+        <div id="logo">VSITES Search</div>
+        <div id="search-box">
+            <input type="text" id="question" placeholder="Enter your question">
+            <button id="search-button" onclick="getResults()">Search</button>
+        </div>
+        <iframe id="result-frame" style="display:none;"></iframe>
+        <div id="results"></div>
     </div>
 
     <script>
-        window.onload = function() {
-            const queryParams = new URLSearchParams(window.location.search);
-            const searchQuery = queryParams.get('q');
+async function fetchManifestData() {
+    try {
+        const response = await fetch('https://alexosthebestnet.github.io/X/VSITES.json');
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching manifest data:", error);
+        return [];
+    }
+}
 
-            if (searchQuery) {
-                document.getElementById('results-container').innerHTML = `<div id="vsite-title">VSITES: from the intranet</div>`;
-                fetch('https://alexosthebestnet.github.io/X/VSITES.json')
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok: ' + response.statusText);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        displayVSITES(data, searchQuery);
-                    })
-                    .catch(error => {
-                        console.error('There has been a problem with your fetch operation:', error.message);
-                    });
-            }
-        };
+function matchQueryWithManifestData(query, manifestData) {
+    const lowerCaseQuery = query.toLowerCase();
+    return manifestData.filter(item => {
+        const titleMatch = item["result-title-text"].toLowerCase().includes(lowerCaseQuery);
+        const descriptionMatch = item["result-description"].toLowerCase().includes(lowerCaseQuery);
+        return titleMatch || descriptionMatch;
+    });
+}
 
-        function displayVSITES(vsites, query) {
-            const container = document.getElementById('results-container');
-            let resultsFound = false;
+function openInFrame(url) {
+    document.getElementById("results").style.display = 'none';
+    const frame = document.getElementById("result-frame");
+    frame.style.display = 'block';
+    frame.src = url;
+}
 
-            vsites.forEach((vsite, index) => {
-                if (vsite['result-title-text'].toLowerCase().includes(query.toLowerCase()) || 
-                    vsite['result-description'].toLowerCase().includes(query.toLowerCase())) {
-                    resultsFound = true;
-                    setTimeout(() => {
-                        const resultDiv = document.createElement('div');
-                        resultDiv.className = 'search-result';
-                        resultDiv.innerHTML = `
-                            <div class="result-title">
-                                <a href="${vsite['result-click-url']}" target="_self">${vsite['result-title-text']}</a>
-                            </div>
-                            <div class="result-display-url">${vsite['result-display-url']}</div>
-                            <div class="result-description">${vsite['result-description']}</div>
-                        `;
-                        container.appendChild(resultDiv);
-                    }, index * 300); // Delay for the animation effect
-                }
-            });
+async function getResults() {
+    const question = document.getElementById("question").value;
+    const resultsElement = document.getElementById("results");
 
-            if (!resultsFound) {
-                document.getElementById('vsite-title').textContent = '';
-            }
-        }
+    try {
+        const manifestData = await fetchManifestData();
+        const matchedManifestResults = matchQueryWithManifestData(question, manifestData);
+
+        // Display custom results
+        resultsElement.innerHTML = "";
+        matchedManifestResults.forEach(item => {
+            resultsElement.innerHTML += `
+                <div class="result">
+                    <h3><a href="${item['result-click-url']}" target="_blank">${item['result-title-text']}</a></h3>
+                    <p>${item['result-description']}</p>
+                </div>
+            `;
+        });
+
+        // Fetch and display Google API results
+        const googleResponse = await fetch(`https://www.googleapis.com/customsearch/v1?key=AIzaSyBYbAgB_KXOHimR46Ox7E7WRl_A36_hmwk&cx=64dacb14df8614f14&q&q=${question}`);
+        const googleData = await googleResponse.json();
+
+        googleData.items.forEach(item => {
+            resultsElement.innerHTML += `
+                <div class="result">
+                    <h3><a href="${item.link}" onclick="event.preventDefault(); openInFrame('${item.link}')">${item.title}</a></h3>
+                    <p>${item.snippet}</p>
+                </div>
+            `;
+        });
+    } catch (error) {
+        console.error("Error fetching search results:", error);
+        resultsElement.innerHTML = "<p>Sorry, there was a problem retrieving search results.</p>";
+    }
+}
+
     </script>
 </body>
 </html>
