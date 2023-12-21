@@ -147,18 +147,19 @@
             }
         });
 
-        window.onload = function() {
+       window.onload = function() {
     const hash = window.location.hash.substring(1); // Remove the '#' character
     if (hash) {
-        document.getElementById("question").value = hash;
-        processSearch(hash);
-        hideSearchBar();
+        const decodedQuery = decodeURIComponent(hash);
+        document.getElementById("question").value = decodedQuery;
+        processSearch(decodedQuery);
+        hideSearchElements();
     }
 };
 
-function hideSearchBar() {
+function hideSearchElements() {
     document.getElementById("search-box").style.display = 'none';
 }
-</script>
+
 </body>
 </html>
