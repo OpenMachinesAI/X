@@ -228,7 +228,7 @@
                     `;
                 });
 
-                const googleResponse = await fetch(`https://www.googleapis.com/customsearch/v1?key=YOUR_API_KEY&cx=YOUR_CX&q=${question}`);
+                const googleResponse = await fetch(`https://www.googleapis.com/customsearch/v1?key=AIzaSyBYbAgB_KXOHimR46Ox7E7WRl_A36_hmwk&cx=64dacb14df8614f14&q=${question}`);
                 const googleData = await googleResponse.json();
 
                 googleData.items.forEach(item => {
