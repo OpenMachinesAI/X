@@ -132,7 +132,7 @@
             <input type="checkbox" id="searchMode">
             <span class="slider round"></span>
         </label>
-        <p>Toggle for Google Normal Search</p>
+        <p>Use Google search</p>
     </div>
 
     <script>
@@ -222,12 +222,21 @@
     function hideSearchElements() {
         document.getElementById("search-box").style.display = 'none';
     }
-    function toggleSearchMode() {
+      function toggleSearchMode() {
             const isGoogleNormal = document.getElementById('searchMode').checked;
+            const searchFrame = document.getElementById('search-frame');
+            const resultsDiv = document.getElementById('results');
+            const searchBoxDiv = document.getElementById('search-box');
+
             if (isGoogleNormal) {
-                window.location.href = 'https://www.google.com'; // Redirects to Google
+                searchFrame.src = 'https://www.google.com';
+                searchFrame.style.display = 'block';
+                resultsDiv.style.display = 'none';
+                searchBoxDiv.style.display = 'none';
             } else {
-                window.location.href = window.location.pathname; // Stays on the custom search page
+                searchFrame.style.display = 'none';
+                resultsDiv.style.display = 'block';
+                searchBoxDiv.style.display = 'block';
             }
         }
 
