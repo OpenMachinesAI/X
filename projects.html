@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects_</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            text-align: center;
+            color: #ffffff;
+            margin-top: 20px;
+        }
+        .projects-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .project {
+            margin: 10px;
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #333333;
+        }
+        .project:hover {
+            box-shadow: 0 0 15px #00ff00, 0 0 15px #9400D3;
+        }
+        .download-button {
+            padding: 10px 20px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #006400;
+            color: #ffffff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .download-button:hover {
+            background-color: #008000;
+            box-shadow: 0 0 15px #00ff00, 0 0 15px #9400D3;
+        }
+        .popup {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .popup-content {
+            background-color: #222;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .popup-button {
+            padding: 10px 20px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .close-button {
+            float: right;
+            cursor: pointer;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Projects_</h1>
+
+<div class="projects-container">
+    <div class="project">
+        Big Cosmo
+        <button class="download-button" onclick="showPopup()">Download</button>
+    </div>
+    <!-- More projects can be added here -->
+</div>
+
+<div class="popup" id="popup">
+    <div class="popup-content">
+        <span class="close-button" onclick="closePopup()">&times;</span>
+        <p>Choose your download option:</p>
+        <button class="popup-button" onclick="window.location.href='https://drive.google.com/uc?export=download&id=1O4lITg09epviBltfoYmXVuf7NITLTtmc';">Split File</button>
+        <button class="popup-button" onclick="alert('This is Coming soon!')">Combined File</button>
+    </div>
+</div>
+
+<script>
+    function showPopup() {
+        document.getElementById("popup").style.display = "flex";
+    }
+
+    function closePopup() {
+        document.getElementById("popup").style.display = "none";
+    }
+</script>
+
+</body>
+</html>
