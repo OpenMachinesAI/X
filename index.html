@@ -67,10 +67,10 @@
 <body>
     <div id="container">
         <div id="logo">
-            <img src="https://i.ibb.co/DtpFSJ5/668-B76-B1-A45-B-4-EBC-A6-D1-26-DE17-BC0-EA2.png" alt="VSearch" style="max-width: 100%; height: auto;">
+            <img src="https://i.ibb.co/DtpFSJ5/668-B76-B1-A45-B-4-EBC-A6-D1-26-DE17-BC0-EA2.png" alt="VSearch" style="max-width: 70%; height: auto;">
         </div>
         <div id="search-box">
-            <input type="text" id="question" placeholder="Enter your question">
+            <input type="text" id="question" placeholder="Search VSites and the Web">
             <button id="search-button" onclick="getResults()">Search</button>
         </div>
         <iframe id="result-frame" style="display:none;"></iframe>
@@ -134,7 +134,7 @@
             });
         } catch (error) {
             console.error("Error fetching search results:", error);
-            resultsElement.innerHTML = "<p>Sorry, there was a problem retrieving search results.</p>";
+            resultsElement.innerHTML = "<p>Search failed.</p>";
         }
     }
 
