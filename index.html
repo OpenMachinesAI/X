@@ -11,7 +11,7 @@
             background-color: #f8f9fa;
         }
         #container {
-            margin-top: 20px; /* Adjusted margin top */
+            margin-top: 100px;
         }
         #logo {
             font-size: 36px;
@@ -62,20 +62,6 @@
         .result a:hover {
             text-decoration: underline;
         }
-        /* Styles for dropdown */
-        #search-type {
-            margin-top: 20px;
-            font-size: 16px;
-            padding: 8px 12px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            background-color: #fff;
-            cursor: pointer;
-        }
-        /* Adjusted margin for dropdown */
-        #search-type-container {
-            margin-top: 10px;
-        }
     </style>
 </head>
 <body>
@@ -83,25 +69,17 @@
         <div id="logo">
             <img src="https://i.ibb.co/DtpFSJ5/668-B76-B1-A45-B-4-EBC-A6-D1-26-DE17-BC0-EA2.png" alt="VSearch" style="max-width: 70%; height: auto;">
         </div>
-        <!-- Dropdown menu -->
-        <div id="search-type-container">
-            <select id="search-type">
-                <option value="text">Text Search</option>
-                <option value="image">Image Search</option>
-            </select>
-        </div>
-        <!-- Search box -->
         <div id="search-box">
             <input type="text" id="question" placeholder="Search VSites and the Web">
             <button id="search-button" onclick="getResults()">Search</button>
         </div>
-        <!-- Result area -->
         <iframe id="result-frame" style="display:none;"></iframe>
         <div id="results"></div>
     </div>
+    <!-- Rest of your script remains the same -->
 </body>
 
-<script>
+    <script>
     // Function to fetch data from your custom manifest
     async function fetchManifestData() {
         try {
@@ -142,10 +120,18 @@
                 `;
             });
 
-            if (document.getElementById('search-type').value === 'image') {
-                const encodedQuery = encodeURIComponent(query);
-                window.location.href = `https://www.google.com/search?q=${encodedQuery}&tbm=isch`;
-            }
+            // Fetch and display Google API results
+    const googleResponse = await fetch(`https://www.googleapis.com/customsearch/v1?key=AIzaSyBYbAgB_KXOHimR46Ox7E7WRl_A36_hmwk&cx=64dacb14df8614f14&q&q=${query}`);
+            const googleData = await googleResponse.json();
+
+            googleData.items.forEach(item => {
+                resultsElement.innerHTML += `
+                    <div class="result">
+                        <h3><a href="${item.link}" target="_blank">${item.title}</a></h3>
+                        <p>${item.snippet}</p>
+                    </div>
+                `;
+            });
         } catch (error) {
             console.error("Error fetching search results:", error);
             resultsElement.innerHTML = "<p>Search failed.</p>";
@@ -181,4 +167,6 @@
         document.getElementById("search-box").style.display = 'none';
     }
 </script>
+</body>
 </html>
+
