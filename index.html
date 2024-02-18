@@ -11,7 +11,7 @@
             background-color: #f8f9fa;
         }
         #container {
-            margin-top: 100px;
+            margin-top: 20px; /* Adjusted margin top */
         }
         #logo {
             font-size: 36px;
@@ -62,6 +62,20 @@
         .result a:hover {
             text-decoration: underline;
         }
+        /* Styles for dropdown */
+        #search-type {
+            margin-top: 20px;
+            font-size: 16px;
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            cursor: pointer;
+        }
+        /* Adjusted margin for dropdown */
+        #search-type-container {
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -69,14 +83,19 @@
         <div id="logo">
             <img src="https://i.ibb.co/DtpFSJ5/668-B76-B1-A45-B-4-EBC-A6-D1-26-DE17-BC0-EA2.png" alt="VSearch" style="max-width: 70%; height: auto;">
         </div>
-        <div id="search-box">
-            <input type="text" id="question" placeholder="Search VSites and the Web">
+        <!-- Dropdown menu -->
+        <div id="search-type-container">
             <select id="search-type">
                 <option value="text">Text Search</option>
                 <option value="image">Image Search</option>
             </select>
+        </div>
+        <!-- Search box -->
+        <div id="search-box">
+            <input type="text" id="question" placeholder="Search VSites and the Web">
             <button id="search-button" onclick="getResults()">Search</button>
         </div>
+        <!-- Result area -->
         <iframe id="result-frame" style="display:none;"></iframe>
         <div id="results"></div>
     </div>
@@ -124,7 +143,8 @@
             });
 
             if (document.getElementById('search-type').value === 'image') {
-                window.location.href = `https://www.google.com/search?tbm=isch&q=${query}`;
+                const encodedQuery = encodeURIComponent(query);
+                window.location.href = `https://www.google.com/search?q=${encodedQuery}&tbm=isch`;
             }
         } catch (error) {
             console.error("Error fetching search results:", error);
