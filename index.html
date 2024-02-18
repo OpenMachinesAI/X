@@ -71,15 +71,18 @@
         </div>
         <div id="search-box">
             <input type="text" id="question" placeholder="Search VSites and the Web">
+            <select id="search-type">
+                <option value="text">Text Search</option>
+                <option value="image">Image Search</option>
+            </select>
             <button id="search-button" onclick="getResults()">Search</button>
         </div>
         <iframe id="result-frame" style="display:none;"></iframe>
         <div id="results"></div>
     </div>
-    <!-- Rest of your script remains the same -->
 </body>
 
-    <script>
+<script>
     // Function to fetch data from your custom manifest
     async function fetchManifestData() {
         try {
@@ -120,18 +123,9 @@
                 `;
             });
 
-            // Fetch and display Google API results
-    const googleResponse = await fetch(`https://www.googleapis.com/customsearch/v1?key=AIzaSyBYbAgB_KXOHimR46Ox7E7WRl_A36_hmwk&cx=64dacb14df8614f14&q&q=${query}`);
-            const googleData = await googleResponse.json();
-
-            googleData.items.forEach(item => {
-                resultsElement.innerHTML += `
-                    <div class="result">
-                        <h3><a href="${item.link}" target="_blank">${item.title}</a></h3>
-                        <p>${item.snippet}</p>
-                    </div>
-                `;
-            });
+            if (document.getElementById('search-type').value === 'image') {
+                window.location.href = `https://www.google.com/search?tbm=isch&q=${query}`;
+            }
         } catch (error) {
             console.error("Error fetching search results:", error);
             resultsElement.innerHTML = "<p>Search failed.</p>";
@@ -167,5 +161,4 @@
         document.getElementById("search-box").style.display = 'none';
     }
 </script>
-</body>
 </html>
