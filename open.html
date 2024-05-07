@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Agent0</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .search-box {
+            text-align: center;
+        }
+        input[type="text"] {
+            width: 300px;
+            height: 25px;
+            margin-top: 20px;
+        }
+        input[type="submit"] {
+            height: 32px;
+            width: 100px;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="search-box">
+        <h1>Agent0</h1>
+        <input type="text" id="taskInput" placeholder="Give me a task" />
+        <input type="submit" value="Run Task" onclick="sendTask()" />
+    </div>
+
+    <script>
+        var recognition;
+        var listening = false;
+
+        window.onload = function() {
+            var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onresult = function(event) {
+                var last = event.results.length - 1;
+                var command = event.results[last][0].transcript;
+                document.getElementById('taskInput').value = command;
+                sendTask();
+            };
+
+            document.body.onkeydown = function(event) {
+                if (event.code === 'Space' && !listening) {
+                    recognition.start();
+                    listening = true;
+                    event.preventDefault();  // Prevent the default spacebar action (scrolling)
+                }
+            };
+
+            document.body.onkeyup = function(event) {
+                if (event.code === 'Space' && listening) {
+                    recognition.stop();
+                    listening = false;
+                }
+            };
+        }
+
+        function sendTask() {
+            var task = document.getElementById('taskInput').value;
+            var encodedTask = encodeURIComponent(task);
+            var url = 'https://app.multion.ai/beta?q=' + encodedTask;
+            window.open(url, '_blank');
+        }
+    </script>
+</body>
+</html>
