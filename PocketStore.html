@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PocketStore</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        #search {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .app-item {
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+        }
+
+        .app-item img {
+            width: 50px;
+            height: 50px;
+            margin-right: 20px;
+        }
+
+        .app-details {
+            flex-grow: 1;
+        }
+
+        .app-details h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .app-details p {
+            margin: 5px 0;
+            color: #555;
+        }
+
+        .download-button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .download-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PocketStore</h1>
+        <input type="text" id="search" placeholder="Search for apps...">
+        <div id="app-list">
+            <!-- App items will be dynamically inserted here -->
+        </div>
+    </div>
+    <script>
+        const apps = [
+            {
+                icon: 'https://via.placeholder.com/50',
+                title: 'App One',
+                description: 'Description for App One.',
+                downloadLink: '#'
+            },
+            {
+                icon: 'https://via.placeholder.com/50',
+                title: 'App Two',
+                description: 'Description for App Two.',
+                downloadLink: '#'
+            },
+            {
+                icon: 'https://via.placeholder.com/50',
+                title: 'App Three',
+                description: 'Description for App Three.',
+                downloadLink: '#'
+            }
+        ];
+
+        const appList = document.getElementById('app-list');
+        const searchInput = document.getElementById('search');
+
+        function displayApps(filteredApps) {
+            appList.innerHTML = '';
+            filteredApps.forEach(app => {
+                const appItem = document.createElement('div');
+                appItem.classList.add('app-item');
+
+                appItem.innerHTML = `
+                    <img src="${app.icon}" alt="${app.title}">
+                    <div class="app-details">
+                        <h2>${app.title}</h2>
+                        <p>${app.description}</p>
+                    </div>
+                    <button class="download-button" onclick="window.location.href='${app.downloadLink}'">Download</button>
+                `;
+
+                appList.appendChild(appItem);
+            });
+        }
+
+        searchInput.addEventListener('input', (e) => {
+            const searchText = e.target.value.toLowerCase();
+            const filteredApps = apps.filter(app =>
+                app.title.toLowerCase().includes(searchText) ||
+                app.description.toLowerCase().includes(searchText)
+            );
+            displayApps(filteredApps);
+        });
+
+        displayApps(apps);
+    </script>
+</body>
+</html>
