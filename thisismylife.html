@@ -23,23 +23,30 @@
       PlayAI.open('7yUl8YVrYvVn5q3H8JCOv');
     });
 
-    // Function to click the button
-    function clickButton() {
-      const button = document.querySelector('button.flex.size-fit.flex-nowrap.items-center.justify-center.rounded-full.border-2.border-white.bg-black.py-2.outline-0.transition-all.px-2.hover\\:scale-110');
-      if (button && button.offsetParent !== null) {
-        button.click();
-        console.log("Button clicked!");
-        return true;
+    // Function to click the button inside the iframe
+    function clickButtonInIframe() {
+      const iframe = document.getElementById('play-ai-embed');
+      if (iframe) {
+        const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
+        const button = iframeDocument.querySelector('button.flex.size-fit.flex-nowrap.items-center.justify-center.rounded-full.border-2.border-white.bg-black.py-2.outline-0.transition-all.px-2.hover\\:scale-110');
+        if (button && button.offsetParent !== null) {
+          button.click();
+          console.log("Button inside iframe clicked!");
+          return true;
+        } else {
+          console.log("Button inside iframe not found yet.");
+          return false;
+        }
       } else {
-        console.log("Button not found yet.");
+        console.log("Iframe not found.");
         return false;
       }
     }
 
     // Periodically check for the button and click it
-    function periodicallyClickButton() {
+    function periodicallyClickButtonInIframe() {
       const intervalId = setInterval(() => {
-        const buttonClicked = clickButton();
+        const buttonClicked = clickButtonInIframe();
         if (buttonClicked) {
           clearInterval(intervalId);
         }
@@ -48,9 +55,10 @@
 
     // Initial check in case the button is already in the DOM
     window.addEventListener('load', () => {
-      console.log("Initial check for button.");
-      clickButton();
-      periodicallyClickButton();
+      console.log("Initial check for button inside iframe.");
+      setTimeout(() => {
+        periodicallyClickButtonInIframe();
+      }, 2000); // Delay before starting the periodic check to ensure the iframe loads
     });
 
     // Function to add the PNG overlay with a delay
