@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    #overlay-image {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 9999; /* Ensure it's above everything else */
+      pointer-events: none; /* Allow interactions to pass through the image */
+      opacity: 0; /* Start hidden */
+      transition: opacity 2s; /* Fade-in effect */
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/play-ai-embed@beta"></script>
+  <script type="text/javascript">
+    addEventListener("load", () => {
+      PlayAI.open('7yUl8YVrYvVn5q3H8JCOv');
+    });
+
+    // Function to click the button
+    function clickButton() {
+      const button = document.querySelector('button.flex.size-fit.flex-nowrap.items-center.justify-center.rounded-full.border-2.border-white.bg-black.py-2.outline-0.transition-all.px-2.hover\\:scale-110');
+      if (button && button.offsetParent !== null) {
+        button.click();
+        console.log("Button clicked!");
+        return true;
+      } else {
+        console.log("Button not found yet.");
+        return false;
+      }
+    }
+
+    // Periodically check for the button and click it
+    function periodicallyClickButton() {
+      const intervalId = setInterval(() => {
+        const buttonClicked = clickButton();
+        if (buttonClicked) {
+          clearInterval(intervalId);
+        }
+      }, 500); // Check every 500ms
+    }
+
+    // Initial check in case the button is already in the DOM
+    window.addEventListener('load', () => {
+      console.log("Initial check for button.");
+      clickButton();
+      periodicallyClickButton();
+    });
+
+    // Function to add the PNG overlay with a delay
+    function addOverlayImage() {
+      const img = document.createElement('img');
+      img.src = 'https://example.com/your-image.png'; // Replace with your PNG URL
+      img.id = 'overlay-image';
+      document.body.appendChild(img);
+      setTimeout(() => {
+        img.style.opacity = '1'; // Fade in the image
+      }, 2000); // 2-second delay before fade-in
+    }
+
+    // Add the overlay image when the script runs
+    window.onload = () => {
+      setTimeout(addOverlayImage, 1000); // Delay before adding the overlay image
+    };
+  </script>
+</head>
+<body>
+  <!-- Existing content of your body -->
+</body>
+</html>
