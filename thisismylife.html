@@ -3,82 +3,81 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
-  <style>
-    #overlay-image {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 9999; /* Ensure it's above everything else */
-      pointer-events: none; /* Allow interactions to pass through the image */
-      opacity: 0; /* Start hidden */
-      transition: opacity 2s; /* Fade-in effect */
-    }
-  </style>
-  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/play-ai-embed@beta"></script>
-  <script type="text/javascript">
-    addEventListener("load", () => {
-      PlayAI.open('7yUl8YVrYvVn5q3H8JCOv');
-    });
-
-    // Function to click the button inside the iframe
-    function clickButtonInIframe() {
-      const iframe = document.getElementById('play-ai-embed');
-      if (iframe) {
-        const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
-        const button = iframeDocument.querySelector('button.flex.size-fit.flex-nowrap.items-center.justify-center.rounded-full.border-2.border-white.bg-black.py-2.outline-0.transition-all.px-2.hover\\:scale-110');
-        if (button && button.offsetParent !== null) {
-          button.click();
-          console.log("Button inside iframe clicked!");
-          return true;
-        } else {
-          console.log("Button inside iframe not found yet.");
-          return false;
-        }
-      } else {
-        console.log("Iframe not found.");
-        return false;
-      }
-    }
-
-    // Periodically check for the button and click it
-    function periodicallyClickButtonInIframe() {
-      const intervalId = setInterval(() => {
-        const buttonClicked = clickButtonInIframe();
-        if (buttonClicked) {
-          clearInterval(intervalId);
-        }
-      }, 500); // Check every 500ms
-    }
-
-    // Initial check in case the button is already in the DOM
-    window.addEventListener('load', () => {
-      console.log("Initial check for button inside iframe.");
-      setTimeout(() => {
-        periodicallyClickButtonInIframe();
-      }, 2000); // Delay before starting the periodic check to ensure the iframe loads
-    });
-
-    // Function to add the PNG overlay with a delay
-    function addOverlayImage() {
-      const img = document.createElement('img');
-      img.src = 'https://example.com/your-image.png'; // Replace with your PNG URL
-      img.id = 'overlay-image';
-      document.body.appendChild(img);
-      setTimeout(() => {
-        img.style.opacity = '1'; // Fade in the image
-      }, 2000); // 2-second delay before fade-in
-    }
-
-    // Add the overlay image when the script runs
-    window.onload = () => {
-      setTimeout(addOverlayImage, 1000); // Delay before adding the overlay image
-    };
-  </script>
+  <title>Voice Activated Button Click in iFrame</title>
 </head>
 <body>
-  <!-- Existing content of your body -->
+  <iframe id="targetIframe" src="https://play.ai/embed/talk/7yUl8YVrYvVn5q3H8JCOv?origin=https%253A%252F%252Fplay.ai&maxWidth=437px&maxHeight=464px" width="437" height="464"></iframe>
+
+  <script type="module">
+    import Artyom from 'https://cdn.jsdelivr.net/npm/artyom.js@1.0.6/build/artyom.min.mjs';
+
+    function injectScriptIntoIframe(iframe) {
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+
+      // Create a script element
+      const script = iframeDoc.createElement('script');
+      script.type = 'module';
+      script.innerHTML = `
+        import Artyom from 'https://cdn.jsdelivr.net/npm/artyom.js@1.0.6/build/artyom.min.mjs';
+
+        function startArtyom() {
+          console.log("Starting Artyom...");
+          const artyom = new Artyom();
+
+          artyom.addCommands({
+            indexes: ["hey hub"],
+            action: function() {
+              console.log("Command recognized: hey hub");
+              // Select the first button element
+              const firstButton = document.querySelector('button');
+
+              // Check if the button exists
+              if (firstButton) {
+                // Create and dispatch a click event
+                const clickEvent = new Event('click', {
+                  'bubbles': true,
+                  'cancelable': true
+                });
+                firstButton.dispatchEvent(clickEvent);
+              } else {
+                console.error('No buttons found!');
+              }
+            }
+          });
+
+          // Start continuous voice recognition
+          artyom.fatality(); // use this to stop any instances if active
+          setTimeout(function(){
+              artyom.initialize({
+                  continuous: true,
+                  listen: true,
+                  debug: true,
+                  lang: "en-US"
+              }).then(function(){
+                  console.log("Artyom has been successfully initialized.");
+              }).catch(function(err){
+                  console.error("Artyom couldn't be initialized: ", err);
+              });
+          }, 250);
+        }
+
+        // Start Artyom when the window loads
+        window.onload = function() {
+          startArtyom();
+        };
+      `;
+
+      // Append the script to the iframe document
+      iframeDoc.head.appendChild(script);
+    }
+
+    // Inject the script into the iframe when it loads
+    window.onload = function() {
+      const iframe = document.getElementById('targetIframe');
+      iframe.onload = function() {
+        injectScriptIntoIframe(iframe);
+      };
+    };
+  </script>
 </body>
 </html>
