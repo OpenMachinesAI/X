@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Voice Interaction with Gemini AI</title>
+    <title>Voice Interaction with ANT AI</title>
     <!-- Include annyang for speech recognition -->
     <script src="https://cdn.jsdelivr.net/npm/annyang@2.6.1/dist/annyang.min.js"></script>
     <!-- Include Recorder.js -->
@@ -59,7 +59,7 @@
     </style>
 </head>
 <body>
-    <h1>Voice Interaction with Gemini AI</h1>
+    <h1>Voice Interaction with ANT AI</h1>
     <img id="animation" src="https://cdn.dribbble.com/users/583436/screenshots/1698964/media/c6693201f9df28dd386aa2f86fc81775.gif" alt="Listening Animation">
     <div id="controls">
         <button id="start-recording">Start Interaction</button>
@@ -267,7 +267,7 @@
             }
 
             const encodedText = encodeURIComponent(text);
-            const audioUrl = `https://api.flowery.pw/v1/tts?voice=Amber&text=${encodedText}`;
+            const audioUrl = `https://api.flowery.pw/v1/tts?voice=Anna&text=${encodedText}`;
             const audio = new Audio(audioUrl);
 
             audio.onended = () => {
