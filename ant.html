@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Voice Interaction with ANT AI</title>
+    <title>Voice Interaction with Gemini AI</title>
     <!-- Include annyang for speech recognition -->
     <script src="https://cdn.jsdelivr.net/npm/annyang@2.6.1/dist/annyang.min.js"></script>
     <!-- Include Recorder.js -->
@@ -59,7 +59,7 @@
     </style>
 </head>
 <body>
-    <h1>Voice Interaction with ANT AI</h1>
+    <h1>Voice Interaction with Gemini AI</h1>
     <img id="animation" src="https://cdn.dribbble.com/users/583436/screenshots/1698964/media/c6693201f9df28dd386aa2f86fc81775.gif" alt="Listening Animation">
     <div id="controls">
         <button id="start-recording">Start Interaction</button>
@@ -94,10 +94,11 @@
         }
 
         function stopInteraction() {
-            if (isRecording) {
-                stopRecording();
-                stopImageCapture();
+            if (annyang) {
+                annyang.abort(); // Stop speech recognition
             }
+            stopRecording();
+            stopImageCapture();
             document.getElementById('start-recording').disabled = false;
             document.getElementById('stop-recording').disabled = true;
         }
@@ -153,7 +154,7 @@
         }
 
         function stopRecording() {
-            if (recorder) {
+            if (recorder && isRecording) {
                 recorder.stopRecording(function() {
                     isRecording = false;
                     let blob = recorder.getBlob();
@@ -179,10 +180,11 @@
             clearInterval(imageCaptureInterval);
             const video = document.getElementById('video');
             const stream = video.srcObject;
-            const tracks = stream.getTracks();
-
-            tracks.forEach(track => track.stop());
-            video.srcObject = null;
+            if (stream) {
+                const tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+                video.srcObject = null;
+            }
         }
 
         function captureImage() {
@@ -210,7 +212,7 @@
 
                 let messageParts = [
                     {
-                        text: 'Engage in a conversation with me picking up the tone of voice and loudness while answering any questions detect if I am screaming, quiet, sad, seemingly energetic, or other emotions. Do not provide this to the user just use it to tailor your answer. Do not tell me my tone just answer. Respond with a long deatiled answer and include yourself acting like a real helpful personal assitent talking to me. Act as if you have emotions but not to human like that your not assiting'
+                        text: 'Engage in a voice conversation with me picking up the tone of voice and loudness while answering any questions. Use the audio for context but do not comment on the user\'s emotions unless you are 100% sure the emotion is correct.'
                     },
                     ...imageParts,
                     {
@@ -267,34 +269,27 @@
             }
 
             const encodedText = encodeURIComponent(text);
-            const audioUrl = `https://api.flowery.pw/v1/tts?voice=Anna&text=${encodedText}`;
+            const audioUrl = `https://api.flowery.pw/v1/tts?voice=Amber&text=${encodedText}`;
             const audio = new Audio(audioUrl);
 
             audio.onended = () => {
                 setAnimation('listening');
                 console.log('TTS playback finished, restarting interaction');
-                restartInteraction(); // Restart the interaction
+                startInteraction(); // Restart the interaction
             };
 
             audio.onerror = (e) => {
                 console.error('Error playing TTS audio:', e);
                 setAnimation('listening');
-                restartInteraction(); // Restart the interaction on error
+                startInteraction(); // Restart the interaction on error
             };
 
             setAnimation('speaking');
             audio.play().catch(e => {
                 console.error('Error playing TTS audio:', e);
                 setAnimation('listening');
-                restartInteraction(); // Restart the interaction on play error
+                startInteraction(); // Restart the interaction on play error
             });
-        }
-
-        function restartInteraction() {
-            if (annyang) {
-                annyang.start({ continuous: true });
-            }
-            startInteraction();
         }
 
         function setAnimation(stage) {
