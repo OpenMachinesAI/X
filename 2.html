@@ -14,7 +14,7 @@
             var iframe = document.querySelector('iframe#play-ai-embed');
             if (iframe) {
                 var message = { action: 'clickButton' }; // Example message
-                iframe.contentWindow.postMessage(message, 'https://play.ai'); // Use the correct origin of the iframe
+                iframe.contentWindow.postMessage(message, '*'); // '*' allows any origin to receive the message
             } else {
                 console.error("Iframe not found.");
             }
