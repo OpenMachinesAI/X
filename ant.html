@@ -1,6 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Voice Interaction with ANT-1e AI</title>
     <script src="https://cdn.jsdelivr.net/npm/annyang@2.6.1/dist/annyang.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/RecordRTC/5.6.2/RecordRTC.min.js"></script>
@@ -50,6 +52,17 @@
             justify-content: center;
             margin-top: 20px;
         }
+        #extra-controls {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-around;
+            width: 80%;
+        }
+        #camera-feed {
+            width: 320px;
+            height: 240px;
+            display: none;
+        }
         video, canvas {
             display: none;
         }
@@ -57,10 +70,19 @@
 </head>
 <body>
     <h1>ANT-1e Demo (Preview)</h1>
-    <img id="animation" src="https://cdn.dribbble.com/users/583436/screenshots/1698964/media/c6693201f9df28dd386aa2f86fc81775.gif" alt="Listening Animation">
+    <div id="interaction-container">
+        <img id="animation" src="https://cdn.dribbble.com/users/583436/screenshots/1698964/media/c6693201f9df28dd386aa2f86fc81775.gif" alt="Listening Animation">
+        <video id="camera-feed" autoplay></video>
+    </div>
     <div id="controls">
         <button id="start-recording">Start</button>
         <button id="stop-recording" disabled>Stop</button>
+    </div>
+    <div id="extra-controls">
+        <button id="pause-ai" disabled>Pause AI</button>
+        <button id="resume-ai" disabled>Resume AI</button>
+        <button id="show-feed">Show Feed</button>
+        <button id="hide-feed" style="display:none;">Hide Feed</button>
     </div>
     <div id="response"></div>
     <video id="video" width="320" height="240" autoplay></video>
@@ -77,9 +99,16 @@
         const imageInterval = 1000; // 1 second
         let capturedImages = [];
         let previousMessages = [];
+        let aiSpeaking = false;
+        let aiPaused = false;
+        let currentAudio;
 
         document.getElementById('start-recording').addEventListener('click', startInteraction);
         document.getElementById('stop-recording').addEventListener('click', stopInteraction);
+        document.getElementById('pause-ai').addEventListener('click', pauseAI);
+        document.getElementById('resume-ai').addEventListener('click', resumeAI);
+        document.getElementById('show-feed').addEventListener('click', showFeed);
+        document.getElementById('hide-feed').addEventListener('click', hideFeed);
 
         function startInteraction() {
             setAnimation('listening');
@@ -98,6 +127,10 @@
             stopImageCapture();
             document.getElementById('start-recording').disabled = false;
             document.getElementById('stop-recording').disabled = true;
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
         }
 
         function startSpeechRecognition() {
@@ -120,6 +153,10 @@
                             stopImageCapture();
                         }
                     }, silenceThreshold);
+
+                    if (aiSpeaking) {
+                        pauseAI();
+                    }
                 });
 
                 annyang.addCallback('error', (event) => {
@@ -193,62 +230,58 @@
         }
 
         async function sendAudioToGemini(audioBlob) {
-    setAnimation('processing');
+            setAnimation('processing');
 
-    const reader = new FileReader();
-    reader.readAsDataURL(audioBlob);
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
 
-    reader.onloadend = async () => {
-        const base64Audio = reader.result.split(',')[1];
-        const imageParts = capturedImages.slice(-5).map(image => ({
-            inline_data: {
-                mime_type: 'image/png',
-                data: image.split(',')[1]
-            }
-        }));
-
-        // Define the system instruction at the root level
-        const systemInstruction = {
-            system_instruction: {
-                text: "Engage in a voice conversation with me picking up the tone of voice and loudness while answering any questions. Use the audio for context but do not comment on the user's emotions unless you are 100% sure the emotion is correct. Give answers from 1--35 words or beyond if user asks for more. Act as a conversational assistant and answer all sorts of queries. Your name is Air Parrot Hub Beta or APHB. Use reasoning for every command, meaning do not make stuff up; if you can't understand something, just say you don't know. Do not tell me you cannot see or hear me as you have image recognition and voice recognition built-in. If the audio contains a greeting, reply; if the audio does not contain a question, reply asking something. Please answer the question in the following audio without transcribing or repeating it; please take it as a query. Answer a query with your reasoning on why that might be your answer. Do not repeat answers."
-            }
-        };
-
-        // Compose the message with the system instruction and other parts
-        const messagePayload = {
-            ...systemInstruction,
-            contents: {
-                parts: [
-                    {
-                        text: "Here is the audio and image. Follow previous instructions and respond with reasoning as APHB. If the request in unclear ask for more info. if they are not talking to you answer anyway  Do not 'Discribe' what is happning. Do not transcribe audio answer as if you were the person who was asked the question. Please be nice and freindly act like my freind named ANT 1 E "
-                    },
-                    ...imageParts,
-                    {
-                        inline_data: {
-                            mime_type: 'audio/wav',
-                            data: base64Audio
-                        }
+            reader.onloadend = async () => {
+                const base64Audio = reader.result.split(',')[1];
+                const imageParts = capturedImages.slice(-5).map(image => ({
+                    inline_data: {
+                        mime_type: 'image/png',
+                        data: image.split(',')[1]
                     }
-                ]
-            }
-        };
+                }));
 
-        previousMessages.push(messagePayload);
+                const systemInstruction = {
+                    system_instruction: {
+                        text: "Engage in a voice conversation with me picking up the tone of voice and loudness while answering any questions. Use the audio for context but do not comment on the user's emotions unless you are 100% sure the emotion is correct. Give answers from 1--35 words or beyond if user asks for more. Act as a conversational assistant and answer all sorts of queries. Your name is Air Parrot Hub Beta or APHB. Use reasoning for every command, meaning do not make stuff up; if you can't understand something, just say you don't know. Do not tell me you cannot see or hear me as you have image recognition and voice recognition built-in. If the audio contains a greeting, reply; if the audio does not contain a question, reply asking something. Please answer the question in the following audio without transcribing or repeating it; please take it as a query. Answer a query with your reasoning on why that might be your answer. Do not repeat answers."
+                    }
+                };
 
-        let success = await trySendToGemini(previousMessages);
-        if (!success) {
-            console.warn('Retrying with only the latest message and images');
-            success = await trySendToGemini(messagePayload.contents.parts);
+                const messagePayload = {
+                    ...systemInstruction,
+                    contents: {
+                        parts: [
+                            {
+                                text: "Here is the audio and image. Follow previous instructions and respond with reasoning as APHB. If the request in unclear ask for more info. if they are not talking to you answer anyway  Do not 'Discribe' what is happning. Do not transcribe audio answer as if you were the person who was asked the question. Please be nice and freindly act like my freind named ANT 1 E "
+                            },
+                            ...imageParts,
+                            {
+                                inline_data: {
+                                    mime_type: 'audio/wav',
+                                    data: base64Audio
+                                }
+                            }
+                        ]
+                    }
+                };
+
+                previousMessages.push(messagePayload);
+
+                let success = await trySendToGemini(previousMessages);
+                if (!success) {
+                    console.warn('Retrying with only the latest message and images');
+                    success = await trySendToGemini(messagePayload.contents.parts);
+                }
+
+                if (!success) {
+                    console.error('Failed to get a valid response from Gemini AI.');
+                    document.getElementById('response').innerText = 'Error processing audio. Please try again.';
+                }
+            };
         }
-
-        if (!success) {
-            console.error('Failed to get a valid response from Gemini AI.');
-            document.getElementById('response').innerText = 'Error processing audio. Please try again.';
-        }
-    };
-}
-
-
 
         async function trySendToGemini(messageParts) {
             try {
@@ -286,26 +319,84 @@
 
             const encodedText = encodeURIComponent(text);
             const audioUrl = `https://api.flowery.pw/v1/tts?voice=5baa4c03-7b60-5e86-881e-cc774417e539&text=${encodedText}&speed=1&silence=0&translate=false&audio_format=mp3`;
-            const audio = new Audio(audioUrl);
+            currentAudio = new Audio(audioUrl);
 
-            audio.onended = () => {
+            currentAudio.onended = () => {
                 setAnimation('listening');
+                aiSpeaking = false;
                 console.log('TTS playback finished, restarting interaction');
                 startInteraction();
             };
 
-            audio.onerror = (e) => {
+            currentAudio.onerror = (e) => {
                 console.error('Error playing TTS audio:', e);
                 setAnimation('listening');
+                aiSpeaking = false;
                 startInteraction();
             };
 
             setAnimation('speaking');
-            audio.play().catch(e => {
+            aiSpeaking = true;
+            currentAudio.play().catch(e => {
                 console.error('Error playing TTS audio:', e);
                 setAnimation('listening');
+                aiSpeaking = false;
                 startInteraction();
             });
+
+            document.getElementById('pause-ai').disabled = false;
+            document.getElementById('resume-ai').disabled = true;
+        }
+
+        function pauseAI() {
+            if (currentAudio && !aiPaused) {
+                currentAudio.pause();
+                aiPaused = true;
+                document.getElementById('pause-ai').disabled = true;
+                document.getElementById('resume-ai').disabled = false;
+                console.log('AI paused');
+            }
+        }
+
+        function resumeAI() {
+            if (currentAudio && aiPaused) {
+                currentAudio.play();
+                aiPaused = false;
+                document.getElementById('pause-ai').disabled = false;
+                document.getElementById('resume-ai').disabled = true;
+                console.log('AI resumed');
+            }
+        }
+
+        function showFeed() {
+            document.getElementById('animation').style.marginRight = '20px';
+            document.getElementById('camera-feed').style.display = 'block';
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    const cameraFeed = document.getElementById('camera-feed');
+                    cameraFeed.srcObject = stream;
+                })
+                .catch(error => {
+                    console.error('Error accessing camera:', error);
+                });
+
+            document.getElementById('show-feed').style.display = 'none';
+            document.getElementById('hide-feed').style.display = 'block';
+        }
+
+        function hideFeed() {
+            const cameraFeed = document.getElementById('camera-feed');
+            const stream = cameraFeed.srcObject;
+            if (stream) {
+                const tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+                cameraFeed.srcObject = null;
+            }
+
+            document.getElementById('animation').style.marginRight = '0';
+            document.getElementById('camera-feed').style.display = 'none';
+            document.getElementById('show-feed').style.display = 'block';
+            document.getElementById('hide-feed').style.display = 'none';
         }
 
         function setAnimation(stage) {
@@ -337,7 +428,6 @@
                 document.body.removeChild(toast);
             }, 3000);
         }
-
     </script>
 </body>
 </html>
