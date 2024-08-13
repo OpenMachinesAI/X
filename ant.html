@@ -2,11 +2,8 @@
 <html>
 <head>
     <title>Voice Interaction with ANT-1e AI</title>
-    <!-- Include annyang for speech recognition -->
     <script src="https://cdn.jsdelivr.net/npm/annyang@2.6.1/dist/annyang.min.js"></script>
-    <!-- Include Recorder.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/RecordRTC/5.6.2/RecordRTC.min.js"></script>
-    <!-- Include marked.js for markdown rendering -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         body {
@@ -77,7 +74,7 @@
         let silenceTimeout;
         const silenceThreshold = 3000; // 3 seconds of silence
         let imageCaptureInterval;
-        const imageInterval = 500; // 0.5 seconds
+        const imageInterval = 1000; // 1 second
         let capturedImages = [];
         let previousMessages = [];
 
@@ -95,7 +92,7 @@
 
         function stopInteraction() {
             if (annyang) {
-                annyang.abort(); // Stop speech recognition
+                annyang.abort();
             }
             stopRecording();
             stopImageCapture();
@@ -105,17 +102,17 @@
 
         function startSpeechRecognition() {
             if (annyang) {
-                annyang.removeCommands(); // Clear any existing commands to avoid duplicates
-                annyang.addCallback('start', function() {
+                annyang.removeCommands();
+                annyang.addCallback('start', () => {
                     console.log('Speech recognition started');
                     setAnimation('listening');
                 });
 
-                annyang.addCallback('end', function() {
+                annyang.addCallback('end', () => {
                     console.log('Speech recognition ended');
                 });
 
-                annyang.addCallback('result', function() {
+                annyang.addCallback('result', () => {
                     clearTimeout(silenceTimeout);
                     silenceTimeout = setTimeout(() => {
                         if (isRecording) {
@@ -125,7 +122,7 @@
                     }, silenceThreshold);
                 });
 
-                annyang.addCallback('error', function(event) {
+                annyang.addCallback('error', (event) => {
                     console.error('Speech recognition error', event.error);
                 });
 
@@ -196,82 +193,80 @@
         }
 
         async function sendAudioToGemini(audioBlob) {
-    setAnimation('processing');
+            setAnimation('processing');
 
-    const reader = new FileReader();
-    reader.readAsDataURL(audioBlob);
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
 
-    reader.onloadend = async () => {
-        const base64Audio = reader.result.split(',')[1];
-        const imageParts = capturedImages.map(image => ({
-            inline_data: {
-                mime_type: 'image/png',
-                data: image.split(',')[1]
-            }
-        }));
+            reader.onloadend = async () => {
+                const base64Audio = reader.result.split(',')[1];
+                const imageParts = capturedImages.slice(-5).map(image => ({
+                    inline_data: {
+                        mime_type: 'image/png',
+                        data: image.split(',')[1]
+                    }
+                }));
 
-        let messageParts = [
-            {
-                text: 'Engage in a voice conversation with me picking up the tone of voice and loudness while answering any questions. Use the audio for context but do not comment on the user\'s emotions unless you are 100% sure the emotion is correct. Give answers from 1--35 words or beyond if user asks for more. act as a convsationaly assitent and answer all sorts of querys your name is Air Parrot Hub Beta or APHB Use reasoning for every command meaning do not make stuff up if you cant understand something just say you dont know. Do not tell me you cannot see or hear me as you have image recigniton and voice rec bulit in IF THE AUDIO CONTAINS A GREETING REPLY IF THE AUDIO DOSE NOT CONTAIN A QUESTION REPLY ASKING SOMETHING, Please Answer the question in the folwoing audio without transcribing or repating it, please take it as a qurey'
-            },
-            ...imageParts,
-            {
-                inline_data: {
-                    mime_type: 'audio/wav',
-                    data: base64Audio
+                let messageParts = [
+                    {
+                        text: 'Engage in a voice conversation with me picking up the tone of voice and loudness while answering any questions. Use the audio for context but do not comment on the user\'s emotions unless you are 100% sure the emotion is correct. Give answers from 1--35 words or beyond if user asks for more. Act as a conversational assistant and answer all sorts of queries. Your name is Air Parrot Hub Beta or APHB. Use reasoning for every command, meaning do not make stuff up; if you can\'t understand something, just say you don\'t know. Do not tell me you cannot see or hear me as you have image recognition and voice recognition built-in. If the audio contains a greeting, reply; if the audio does not contain a question, reply asking something. Please answer the question in the following audio without transcribing or repeating it; please take it as a query.'
+                    },
+                    ...imageParts,
+                    {
+                        inline_data: {
+                            mime_type: 'audio/wav',
+                            data: base64Audio
+                        }
+                    }
+                ];
+
+                previousMessages.push(...messageParts);
+
+                let success = await trySendToGemini(previousMessages);
+                if (!success) {
+                    console.warn('Retrying with only the latest message and images');
+                    success = await trySendToGemini(messageParts);
                 }
+
+                if (!success) {
+                    console.error('Failed to get a valid response from Gemini AI.');
+                    document.getElementById('response').innerText = 'Error processing audio. Please try again.';
+                }
+            };
+        }
+
+        async function trySendToGemini(messageParts) {
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-exp-0801:generateContent?key=${API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: messageParts }],
+                        model: "gemini-1.5-pro-exp-0801"
+                    })
+                });
+
+                const data = await response.json();
+                console.log('Response data:', data);
+                if (data && data.candidates && data.candidates.length > 0) {
+                    const responseMessage = data.candidates[0].content.parts[0].text;
+                    document.getElementById('response').innerHTML = marked.parse(responseMessage);
+                    playTextAsSpeech(responseMessage);
+                    return true;
+                } else {
+                    showToast('Error 001 Trying Again...');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error sending audio to Gemini:', error);
+                showToast('Error sending audio to ANT. Please try again.');
+                return false;
             }
-        ];
-
-        previousMessages.push(...messageParts);
-
-        let success = await trySendToGemini(previousMessages);
-        if (!success) {
-            console.warn('Retrying with only the latest message and images');
-            success = await trySendToGemini(messageParts);
         }
-
-        if (!success) {
-            console.error('Failed to get a valid response from Gemini AI.');
-            document.getElementById('response').innerText = 'Error processing audio. Please try again.';
-        }
-    };
-}
-
-async function trySendToGemini(messageParts) {
-    try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-exp-0801:generateContent?key=${API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: messageParts }],
-                model: "gemini-1.5-pro-exp-0801"
-            })
-        });
-
-        const data = await response.json();
-        console.log('Response data:', data);
-        if (data && data.candidates && data.candidates.length > 0) {
-            const responseMessage = data.candidates[0].content.parts[0].text;
-            document.getElementById('response').innerHTML = marked.parse(responseMessage);
-            playTextAsSpeech(responseMessage);
-            return true;
-        } else {
-            showToast('Error 001 Trying Again...');
-            return false;
-        }
-    } catch (error) {
-        console.error('Error sending audio to Gemini:', error);
-        showToast('Error sending audio to ANT. Please try again.');
-        return false;
-    }
-}
-
-
 
         function playTextAsSpeech(text) {
             if (annyang) {
-                annyang.abort(); // Stop listening for speech
+                annyang.abort();
             }
 
             const encodedText = encodeURIComponent(text);
@@ -281,20 +276,20 @@ async function trySendToGemini(messageParts) {
             audio.onended = () => {
                 setAnimation('listening');
                 console.log('TTS playback finished, restarting interaction');
-                startInteraction(); // Restart the interaction
+                startInteraction();
             };
 
             audio.onerror = (e) => {
                 console.error('Error playing TTS audio:', e);
                 setAnimation('listening');
-                startInteraction(); // Restart the interaction on error
+                startInteraction();
             };
 
             setAnimation('speaking');
             audio.play().catch(e => {
                 console.error('Error playing TTS audio:', e);
                 setAnimation('listening');
-                startInteraction(); // Restart the interaction on play error
+                startInteraction();
             });
         }
 
@@ -308,25 +303,25 @@ async function trySendToGemini(messageParts) {
                 animation.src = 'https://cdn.dribbble.com/users/583436/screenshots/1696376/wavy.gif';
             }
         }
-      
-      function showToast(message) {
-    const toast = document.createElement('div');
-    toast.textContent = message;
-    toast.style.position = 'fixed';
-    toast.style.bottom = '20px';
-    toast.style.left = '50%';
-    toast.style.transform = 'translateX(-50%)';
-    toast.style.backgroundColor = '#333';
-    toast.style.color = '#fff';
-    toast.style.padding = '10px 20px';
-    toast.style.borderRadius = '5px';
-    toast.style.zIndex = '1000';
-    document.body.appendChild(toast);
 
-    setTimeout(() => {
-        document.body.removeChild(toast);
-    }, 3000);
-}
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.textContent = message;
+            toast.style.position = 'fixed';
+            toast.style.bottom = '20px';
+            toast.style.left = '50%';
+            toast.style.transform = 'translateX(-50%)';
+            toast.style.backgroundColor = '#333';
+            toast.style.color = '#fff';
+            toast.style.padding = '10px 20px';
+            toast.style.borderRadius = '5px';
+            toast.style.zIndex = '1000';
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                document.body.removeChild(toast);
+            }, 3000);
+        }
 
     </script>
 </body>
