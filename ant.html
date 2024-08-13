@@ -193,47 +193,57 @@
         }
 
         async function sendAudioToGemini(audioBlob) {
-            setAnimation('processing');
+    setAnimation('processing');
 
-            const reader = new FileReader();
-            reader.readAsDataURL(audioBlob);
+    const reader = new FileReader();
+    reader.readAsDataURL(audioBlob);
 
-            reader.onloadend = async () => {
-                const base64Audio = reader.result.split(',')[1];
-                const imageParts = capturedImages.slice(-5).map(image => ({
-                    inline_data: {
-                        mime_type: 'image/png',
-                        data: image.split(',')[1]
-                    }
-                }));
+    reader.onloadend = async () => {
+        const base64Audio = reader.result.split(',')[1];
+        const imageParts = capturedImages.slice(-5).map(image => ({
+            inline_data: {
+                mime_type: 'image/png',
+                data: image.split(',')[1]
+            }
+        }));
 
-                let messageParts = [
-                    {
-                        text: 'Engage in a voice conversation with me picking up the tone of voice and loudness while answering any questions. Use the audio for context but do not comment on the user\'s emotions unless you are 100% sure the emotion is correct. Give answers from 1--35 words or beyond if user asks for more. Act as a conversational assistant and answer all sorts of queries. Your name is Air Parrot Hub Beta or APHB. Use reasoning for every command, meaning do not make stuff up; if you can\'t understand something, just say you don\'t know. Do not tell me you cannot see or hear me as you have image recognition and voice recognition built-in. If the audio contains a greeting, reply; if the audio does not contain a question, reply asking something. Please answer the question in the following audio without transcribing or repeating it; please take it as a query. Answer a qurey with your reasoning on why that might be your answer. do not repat answers. for example dont say hello if the user is not currently asking you that. read text on things to dertrim info'
-                    },
-                    ...imageParts,
-                    {
-                        inline_data: {
-                            mime_type: 'audio/wav',
-                            data: base64Audio
-                        }
-                    }
-                ];
-
-                previousMessages.push(...messageParts);
-
-                let success = await trySendToGemini(previousMessages);
-                if (!success) {
-                    console.warn('Retrying with only the latest message and images');
-                    success = await trySendToGemini(messageParts);
+        const systemInstruction = {
+            system_instruction: {
+                parts: {
+                    text: "Engage in a voice conversation with me picking up the tone of voice and loudness while answering any questions. Use the audio for context but do not comment on the user's emotions unless you are 100% sure the emotion is correct. Give answers from 1--35 words or beyond if user asks for more. Act as a conversational assistant and answer all sorts of queries. Your name is Air Parrot Hub Beta or APHB. Use reasoning for every command, meaning do not make stuff up; if you can't understand something, just say you don't know. Do not tell me you cannot see or hear me as you have image recognition and voice recognition built-in. If the audio contains a greeting, reply; if the audio does not contain a question, reply asking something. Please answer the question in the following audio without transcribing or repeating it; please take it as a query. Answer a qurey with your reasoning on why that might be your answer. do not repat answers. for example dont say hello if the user is not currently asking you that. read text on things to dertrim info."
                 }
+            }
+        };
 
-                if (!success) {
-                    console.error('Failed to get a valid response from Gemini AI.');
-                    document.getElementById('response').innerText = 'Error processing audio. Please try again.';
+        const messageParts = [
+            systemInstruction,
+            {
+                text: "Here is the audio and image. follow previous instructions and respond with reasoning as APHB"
+            },
+            ...imageParts,
+            {
+                inline_data: {
+                    mime_type: 'audio/wav',
+                    data: base64Audio
                 }
-            };
+            }
+        ];
+
+        previousMessages.push(...messageParts);
+
+        let success = await trySendToGemini(previousMessages);
+        if (!success) {
+            console.warn('Retrying with only the latest message and images');
+            success = await trySendToGemini(messageParts);
         }
+
+        if (!success) {
+            console.error('Failed to get a valid response from Gemini AI.');
+            document.getElementById('response').innerText = 'Error processing audio. Please try again.';
+        }
+    };
+}
+
 
         async function trySendToGemini(messageParts) {
             try {
