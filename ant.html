@@ -62,8 +62,8 @@
     <h1>ANT-1e Demo (Preview)</h1>
     <img id="animation" src="https://cdn.dribbble.com/users/583436/screenshots/1698964/media/c6693201f9df28dd386aa2f86fc81775.gif" alt="Listening Animation">
     <div id="controls">
-        <button id="start-recording">Start Interaction</button>
-        <button id="stop-recording" disabled>Stop Interaction</button>
+        <button id="start-recording">Start</button>
+        <button id="stop-recording" disabled>Stop</button>
     </div>
     <div id="response"></div>
     <video id="video" width="320" height="240" autoplay></video>
@@ -212,7 +212,7 @@
 
         let messageParts = [
             {
-                text: 'Engage in a voice conversation with me picking up the tone of voice and loudness while answering any questions. Use the audio for context but do not comment on the user\'s emotions unless you are 100% sure the emotion is correct. Give answers from 1--35 words or beyond if user asks for more. act as a convsationaly assitent and answer all sorts of querys your name is Air Parrot Hub Beta or APHB Use reasoning for every command meaning do not make stuff up if you cant understand something just say you dont know. Do not tell me you cannot see or hear me as you have image recigniton and voice rec bulit in IF THE AUDIO CONTAINS A GREETING REPLY IF THE AUDIO DOSE NOT CONTAIN A QUESTION REPLY ASKING SOMETHING  Please Answer the question in the folwoing audio'
+                text: 'Engage in a voice conversation with me picking up the tone of voice and loudness while answering any questions. Use the audio for context but do not comment on the user\'s emotions unless you are 100% sure the emotion is correct. Give answers from 1--35 words or beyond if user asks for more. act as a convsationaly assitent and answer all sorts of querys your name is Air Parrot Hub Beta or APHB Use reasoning for every command meaning do not make stuff up if you cant understand something just say you dont know. Do not tell me you cannot see or hear me as you have image recigniton and voice rec bulit in IF THE AUDIO CONTAINS A GREETING REPLY IF THE AUDIO DOSE NOT CONTAIN A QUESTION REPLY ASKING SOMETHING, Please Answer the question in the folwoing audio without transcribing or repating it, please take it as a qurey'
             },
             ...imageParts,
             {
@@ -257,12 +257,12 @@ async function trySendToGemini(messageParts) {
             playTextAsSpeech(responseMessage);
             return true;
         } else {
-            showToast('No candidates found in the response');
+            showToast('Error 001 Trying Again...');
             return false;
         }
     } catch (error) {
         console.error('Error sending audio to Gemini:', error);
-        showToast('Error sending audio to Gemini. Please try again.');
+        showToast('Error sending audio to ANT. Please try again.');
         return false;
     }
 }
