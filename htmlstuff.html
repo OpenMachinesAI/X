@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ollie Robot Voice Control</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+        #connectButton, #status, #spinDirectionLabel, #spinDirectionSelect {
+            margin-top: 20px;
+            display: block;
+        }
+        #log {
+            margin-top: 20px;
+            background-color: #fff;
+            padding: 10px;
+            height: 200px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Ollie Robot Voice Control</h1>
+    
+    <!-- Spin Direction Selector -->
+    <label id="spinDirectionLabel" for="spinDirectionSelect">Select Spin Direction:</label>
+    <select id="spinDirectionSelect">
+        <option value="left">Left Motor</option>
+        <option value="right">Right Motor</option>
+    </select>
+    
+    <button id="connectButton">Connect to Ollie Robot</button>
+    <div id="status">Status: Not Connected</div>
+    <div id="log"></div>
+
+    <!-- Include Artyom.js -->
+    <script src="https://cdn.jsdelivr.net/npm/artyom.js@1.0.6/build/artyom.window.min.js"></script>
+
+    <script>
+        // ==============================
+        // Configuration Section
+        // ==============================
+
+        // Spin Direction Variable
+        // Set to 'left' or 'right' to choose which motor to spin
+        let spinDirection = 'left'; // Default is 'left'
+
+        // Update spinDirection based on user selection
+        document.getElementById('spinDirectionSelect').addEventListener('change', (event) => {
+            spinDirection = event.target.value;
+            logMessage(`Spin direction set to: ${spinDirection}`);
+        });
+
+        // Expanded Keywords List with Misspellings
+        const keywords = [
+            "Skibidi", "Skibidii", "Skibidy", "Skibiddy",
+            "Sigma", "Sgima", "Simga", "Sigmma",
+            "Rizz", "Riz", "Rizzze", "Rizzzi",
+            "Mewing", "Mewinng", "Mewin", "Mewingg",
+            "Got", "Gat", "Gott", "Gottt",
+            "Bet", "Butt", "Bettt", "Beht",
+            "Bussin'", "Bussing", "Buzin'", "Bussinn",
+            "Ohio", "Ohiio", "Ohi", "Oheo",
+            "Baddie", "Badiie", "Baddy", "Badie",
+            "It's the for me", "Its the for me", "It’s the for me", "It’s the four me",
+            "Let him cook", "Let him cookk", "Let hem cook", "Let 'em cook",
+            "Fanum tax", "Fannum tax", "Fanum tx", "Fanumm tax",
+            "Delulu", "Deluulu", "Dellulu", "Deluluu",
+            "Slay", "Sleigh", "Slayyy", "Sley",
+            "Drip", "Driip", "Dripp", "Drippp",
+            "Flex", "Flexx", "Flecks", "Flecks",
+            "Cap", "Capp", "Cappp", "Kap",
+            "Simp", "Simpp", "Simm", "Simmpp",
+            "W", "Double U", "Duble W", "Wee",
+            "L", "El", "Elle", "Elle"
+        ];
+
+        // Logger function to display messages
+        function logMessage(message) {
+            const log = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            log.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // Initialize Artyom
+        const artyom = new Artyom();
+
+        // Configure Artyom for continuous listening
+        function startArtyom() {
+            artyom.addCommands([
+                {
+                    indexes: keywords,
+                    action: function(i, wildcard) {
+                        logMessage(`Detected keyword: "${keywords[i]}"`);
+                        ollie.executeSpin();
+                    }
+                }
+            ]);
+
+            artyom.initialize({
+                lang: "en-US",
+                continuous: true, // Listen forever
+                listen: true,     // Start listening
+                interimResults: false,
+                debug: true       // Show logs in the console
+            }).then(() => {
+                logMessage("Artyom initialized and listening for commands.");
+            }).catch(err => {
+                logMessage("Artyom couldn't be initialized: " + err);
+            });
+        }
+
+        // Stop Artyom
+        function stopArtyom() {
+            artyom.fatality();
+            logMessage("Artyom stopped.");
+        }
+
+        // Bluetooth configuration constants
+        const CONFIG = {
+            radioService: "22bb746f-2bb0-7554-2d6f-726568705327",
+            robotService: "22bb746f-2ba0-7554-2d6f-726568705327",
+            controlCharacteristic: "22bb746f-2ba1-7554-2d6f-726568705327",
+            antiDOSCharacteristic: "22bb746f-2bbd-7554-2d6f-726568705327",
+            powerCharacteristic: "22bb746f-2bb2-7554-2d6f-726568705327",
+            wakeUpCPUCharacteristic: "22bb746f-2bbf-7554-2d6f-726568705327"
+        };
+
+        class Ollie {
+            constructor() {
+                this.device = null;
+                this.server = null;
+                this.sequence = 0;
+                this.busy = false;
+            }
+
+            async requestDevice() {
+                let options = {
+                    filters: [{ services: [CONFIG.radioService] }, { services: [CONFIG.robotService] }],
+                    optionalServices: [CONFIG.radioService, CONFIG.robotService]
+                };
+                try {
+                    this.device = await navigator.bluetooth.requestDevice(options);
+                    this.device.addEventListener('gattserverdisconnected', this.onDisconnected.bind(this));
+                    logMessage("Device selected. Connecting...");
+                    await this.connect();
+                    await this.initDevice();
+                } catch (error) {
+                    logMessage("Failed to connect: " + error);
+                }
+            }
+
+            async connect() {
+                try {
+                    this.server = await this.device.gatt.connect();
+                    logMessage("Connected to GATT server.");
+                } catch (error) {
+                    logMessage("Connection failed: " + error);
+                }
+            }
+
+            async initDevice() {
+                try {
+                    await this._writeCharacteristic(CONFIG.radioService, CONFIG.antiDOSCharacteristic, new Uint8Array('011i3'.split('').map(c => c.charCodeAt())));
+                    logMessage("> Anti DOS characteristic initialized.");
+                    await this._writeCharacteristic(CONFIG.radioService, CONFIG.powerCharacteristic, new Uint8Array([0x07]));
+                    logMessage("> TX Power characteristic initialized.");
+                    await this._writeCharacteristic(CONFIG.radioService, CONFIG.wakeUpCPUCharacteristic, new Uint8Array([0x01]));
+                    logMessage("> Wake CPU characteristic initialized.");
+                    // Additional initialization commands can be added here
+                } catch (error) {
+                    logMessage("Initialization failed: " + error);
+                }
+            }
+
+            async executeSpin() {
+                if (this.busy) {
+                    logMessage("Ollie is busy.");
+                    return;
+                }
+                this.busy = true;
+                try {
+                    if (spinDirection === 'left') {
+                        // Spin Left Motor
+                        await this.processSpin(1, 255, 0, 0, 1);
+                        logMessage("Left motor spinning at power 255 for 1 second.");
+                        await this.delay(1000); // Wait for 1 second
+                    } else if (spinDirection === 'right') {
+                        // Spin Right Motor
+                        await this.processSpin(0, 0, 1, 255, 1);
+                        logMessage("Right motor spinning at power 255 for 1 second.");
+                        await this.delay(1000); // Wait for 1 second
+                    } else {
+                        logMessage(`Invalid spin direction: ${spinDirection}`);
+                    }
+                } catch (error) {
+                    logMessage("Error executing spin: " + error);
+                } finally {
+                    // Stop the motor after spinning
+                    await this.processSpin(0, 0, 0, 0, 0);
+                    this.busy = false;
+                }
+            }
+
+            async processSpin(lmotor, lpower, rmotor, rpower, duration) {
+                if (!this.server || !this.server.connected) {
+                    logMessage("Device is not connected.");
+                    return;
+                }
+                const did = 0x02;
+                const cid = 0x33;
+                const data = new Uint8Array([lmotor & 0x07, lpower & 0xFF, rmotor & 0x07, rpower & 0xFF]);
+                await this._sendCommand(did, cid, data);
+
+                if (duration > 0) {
+                    await this.delay(duration * 1000);
+                    // Stop motors after duration
+                    const stopData = new Uint8Array([0x00, 0x00, 0x00, 0x00]);
+                    await this._sendCommand(did, cid, stopData);
+                }
+            }
+
+            async _sendCommand(did, cid, data) {
+                let seq = this.sequence & 255;
+                this.sequence += 1;
+                let sop2 = 0xfc;
+                sop2 |= 1;
+                sop2 |= 2;
+                let dlen = data.byteLength + 1;
+                let sum = data.reduce((a, b) => a + b, 0) + did + cid + seq + dlen;
+                let chk = (sum & 255) ^ 255;
+                let checksum = new Uint8Array([chk]);
+                let packets = new Uint8Array([0xff, sop2, did, cid, seq, dlen]);
+                let array = new Uint8Array(packets.byteLength + data.byteLength + checksum.byteLength);
+                array.set(packets, 0);
+                array.set(data, packets.byteLength);
+                array.set(checksum, packets.byteLength + data.byteLength);
+                await this._writeCharacteristic(CONFIG.robotService, CONFIG.controlCharacteristic, array);
+            }
+
+            async _writeCharacteristic(serviceUID, characteristicUID, value) {
+                try {
+                    const service = await this.server.getPrimaryService(serviceUID);
+                    const characteristic = await service.getCharacteristic(characteristicUID);
+                    await characteristic.writeValue(value);
+                } catch (error) {
+                    logMessage("Failed to write characteristic: " + error);
+                    throw error;
+                }
+            }
+
+            onDisconnected() {
+                logMessage("Device disconnected.");
+                this.server = null;
+                this.device = null;
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        const ollie = new Ollie();
+
+        // Handle Connect Button
+        document.getElementById('connectButton').addEventListener('click', async () => {
+            await ollie.requestDevice();
+            document.getElementById('status').innerText = ollie.device ? "Status: Connected" : "Status: Not Connected";
+            startArtyom();
+        });
+
+    </script>
+</body>
+</html>
