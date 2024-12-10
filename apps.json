@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Coming Soon",
+    "icon": "https://example.com/icon1.png",
+    "url": "https://example.com/app1"
+  },
+  {
+    "name": "Coming Soon ",
+    "icon": "https://example.com/icon2.png",
+    "url": "https://example.com/app2"
+  },
+  {
+    "name": "Coming Soon",
+    "icon": "https://example.com/icon3.png",
+    "url": "https://example.com/app3"
+  }
+]
