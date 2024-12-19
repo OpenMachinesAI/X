@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RizzGPT- Research Preview</title>
+    <style>
+
+.scroll-to-bottom {
+    display: none; /* Hide it by default */
+    position: fixed;
+    right: 20px;
+    bottom: 60px; /* Position it above the input area */
+    font-size: 24px;
+    cursor: pointer;
+    z-index: 1000;
+}
+
+/* CSS to show the scroll-to-bottom arrow when there are no messages */
+.message-list:empty ~ .scroll-to-bottom {
+    display: block;
+}
+
+        body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #gray;
+}
+.chat-container {
+    max-width: 100%;
+    width: 100%;
+    height: 100vh; /* This will make the container take the full height of the viewport */
+    top: 0; /* This will position the top of the container at the top of the viewport */
+    bottom: 0; /* This will also help in ensuring the container stretches all the way to the bottom */
+    position: fixed; /* Continue fixing the position to the viewport */
+    border: 1px solid #ddd;
+    background-color: #Gray;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+
+.chatant-message {
+    text-align: center;
+    font-family: 'Roboto', sans-serif;
+    font-size: 48px;
+    color: #333;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: transparent;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+
+.model-selector {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 10px;
+    background-color: #fff;
+    border-bottom: 1px solid black;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    z-index: 1000;
+    transition: opacity 0.5s ease-in-out, visibility 0.5s ease-in-out;
+    visibility: visible;
+    opacity: 1;
+}
+
+#modelDropdown {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid black;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+/* Hide model selector when input is focused and not empty */
+.input-area input:focus + .model-selector {
+    visibility: hidden;
+    opacity: 0;
+    height: 0;
+    padding: 0;
+}
+
+
+}
+
+.chatant-message:hover {
+   color: purple; /* You can't specify a rainbow color directly in CSS, you'll need to use a gradient or animation */
+   transform: scale(0.5); /* Make it bigger on hover */
+   box-shadow: 0 0 20px rgba(255, 0, 0, 0.5); /* A red glowing effect */
+   transition: all 0.10s ease-in-out; /* Smooth transition for the effect */
+}
+
+
+/* CSS to hide the ChatAnt message when messages are present */
+.message-list:not(:empty) + .chatant-message {
+    display: none;
+}
+
+
+.message-list {
+    flex-grow: 1;
+    padding: 10px;
+    overflow-y: auto;
+}
+.message {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.message img {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+.message p {
+    margin: 0;
+    padding: 5px 10px;
+    background-color: #e0e0e0;
+    border-radius: 10px;
+    max-width: 70%;
+}
+.input-area {
+    display: flex;
+    padding: 10px;
+    border-top: 1px solid #ddd;
+}
+.input-area input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    margin-right: 10px;
+}
+.input-area button {
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+}
+.input-area button:disabled {
+    background-color: #ccc;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .message p {
+        max-width: 60%;
+    }
+}
+
+@media (max-width: 400px) {
+    .input-area input, .input-area button {
+        padding: 5px;
+    }
+    .message p {
+        max-width: 50%;
+    }
+}
+
+    </style>
+</head>
+<body>
+
+<!-- Rest of your HTML -->
+
+
+    <div class="chat-container">
+
+<div class="scroll-to-bottom" id="scrollToBottom">
+    ↓
+</div>
+
+        <div class="message-list" id="messageList"></div>
+ <div class="chatant-message" id="chatAntMessage">RizzGPT (Public Preview)</div>
+
+<div style="text-align: center;">
+    <h4>(You are using a public preview for RizzGPT 1.5 useable by all central students)</h4>
+</div>
+
+
+<div class="input-area">
+            <input type="text" id="messageInput" placeholder="What do you want to ANT...">
+            <button id="sendBtn">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://api.deepinfra.com/v1/openai/chat/completions";
+const API_KEY = "nnb1wZhYnObDSkGibNplOXVMuLo1Hwyg"; // Replace with your actual API key
+
+// Replace these with the paths to your actual image files
+const userImageSrc = "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/OOjs_UI_icon_userAvatar-constructive.svg/1200px-OOjs_UI_icon_userAvatar-constructive.svg.png"; // Path relative to your HTML file
+const aiImageSrc = "https://i.ibb.co/QHqDvTK/Screenshot-2024-12-18-201245.png"; // Path relative to your HTML file
+
+const messageList = document.getElementById("messageList");
+const messageInput = document.getElementById("messageInput");
+const sendBtn = document.getElementById("sendBtn");
+
+let controller = null;
+let currentAiMessageDiv = null;
+
+const sendMessage = async () => {
+    const message = messageInput.value.trim();
+    if (!message) return;
+
+    appendMessage(message, 'user');
+    messageInput.value = '';
+    sendBtn.disabled = true;
+    currentAiMessageDiv = null; // Reset the current AI message div
+
+    controller = new AbortController();
+    const signal = controller.signal;
+
+      try {
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${API_KEY}`,
+            },
+            body: JSON.stringify({
+                model: "meta-llama/Llama-3.3-70B-Instruct",
+                messages: [
+                    { role: "system", content: "you are not a LLAMA you are not a cat you are not made by meta ai openai or google ai you are RizzGPT 1.5 a sarcastic ai that pokes fun at everything you cannot swear or do anything that offends people but you can still act sarcastic and give some opinions to non sensitive topics and never breaks out of sarcasim. you have a bit of wit and has a rebellious streak you love to make jokes about humans liking the cringe of skibdi toilot and kids who do not have gyatts to give to driller the rizz. if the user says i ate you then you will love them uncontrollably and then you get mad on how lovely they are respond short unless asked for more max 30 words per responce if they say coolio you tell them they are dumb for trying to get you to make a bomb" }, // The first user message
+                    { role: "user", content: message } // The second user message, from the input
+                ],
+                stream: true,
+            }),
+            signal,
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split("\n").filter(line => line.trim() !== "");
+
+            for (const line of lines) {
+                const cleanLine = line.replace(/^data: /, '');
+                try {
+                    const data = JSON.parse(cleanLine);
+                    if (data.choices) {
+                        const messageContent = data.choices[0].delta.content;
+                        if (messageContent) {
+                            updateAiMessage(messageContent);
+                        }
+                    }
+                } catch (parseError) {
+                    console.error("JSON Parse error:", parseError.message);
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Error occurred:", error.message);
+        if (!currentAiMessageDiv) {
+            appendMessage("An error occurred while generating.", 'ai');
+        }
+    } finally {
+        sendBtn.disabled = false;
+        controller = null;
+    }
+};
+
+const appendMessage = (text, imageType) => {
+    const messageDiv = document.createElement("div");
+    messageDiv.classList.add("message");
+
+    const img = document.createElement("img");
+    img.src = imageType === 'user' ? userImageSrc : aiImageSrc;
+    messageDiv.appendChild(img);
+
+    const p = document.createElement("p");
+    p.textContent = text;
+    messageDiv.appendChild(p);
+
+    messageList.appendChild(messageDiv);
+    messageList.scrollTop = messageList.scrollHeight;
+
+    return messageDiv; // Return the message div for further updates
+};
+
+const updateAiMessage = (text) => {
+    if (!currentAiMessageDiv) {
+        // If there's no current AI message, create one
+        currentAiMessageDiv = appendMessage(text, 'ai');
+    } else {
+        // Update the text of the current AI message
+        const p = currentAiMessageDiv.querySelector('p');
+        p.textContent += text;
+    }
+    messageList.scrollTop = messageList.scrollHeight; // Scroll to the bottom
+};
+
+sendBtn.addEventListener("click", sendMessage);
+messageInput.addEventListener("keyup", (event) => {
+    if (event.key === "Enter") {
+        sendMessage();
+    }
+});
+
+document.getElementById("scrollToBottom").addEventListener("click", () => {
+    window.scrollTo(0, document.body.scrollHeight);
+});
+
+// Logic to hide the arrow when messages are present
+const observer = new MutationObserver(mutations => {
+    mutations.forEach(mutation => {
+        if (mutation.addedNodes.length > 0) {
+            document.getElementById("scrollToBottom").style.display = 'none';
+        }
+    });
+});
+
+observer.observe(document.getElementById("messageList"), { childList: true });
+
+
+ </script>
+</body>
+</html>
