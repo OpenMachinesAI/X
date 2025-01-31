@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Squid Game Soundboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background: #2a2a2a;
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding-bottom: 60px; /* Add space for soundtrack button */
+        }
+
+        h1 {
+            text-align: center;
+            color: #ff4141;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        #startButton {
+            display: block;
+            width: 100%;
+            padding: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: #00b894;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            cursor: pointer;
+            transition: transform 0.3s, background 0.3s;
+        }
+
+        #startButton.stop {
+            background: #ff4141;
+        }
+
+        #startButton:active {
+            transform: scale(0.95);
+        }
+
+        .button-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .game-button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.3s;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .game-button.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #redButton {
+            background: #ff4141;
+            color: white;
+        }
+
+        #greenButton {
+            background: #00b894;
+            color: white;
+        }
+
+        .pulse {
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* Soundtrack button styles */
+        #soundtrackButton {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            background: #6c5ce7;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        #soundtrackButton:active {
+            transform: translateX(-50%) scale(0.95);
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .button-container {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .game-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SQUID GAME SOUNDBOARD</h1>
+        <button id="startButton">START GAME</button>
+        <div class="button-container">
+            <button id="redButton" class="game-button">🔴 RED LIGHT</button>
+            <button id="greenButton" class="game-button">🟢 GREEN LIGHT</button>
+        </div>
+        <button id="soundtrackButton">🎵 Play Soundtrack</button>
+    </div>
+
+    <script>
+        const startButton = document.getElementById('startButton');
+        const redButton = document.getElementById('redButton');
+        const greenButton = document.getElementById('greenButton');
+        const soundtrackButton = document.getElementById('soundtrackButton');
+        const gameButtons = document.querySelectorAll('.game-button');
+
+        // Audio elements
+        const startSound = new Audio('https://storage.googleapis.com/soundboards/TV%20SHOWS/SQUID%20GAME/MP3/GREEN%20LIGHT%20SOUND%20EFFECT%20-%20AUDIO%20FROM%20JAYUZUMI.COM.mp3');
+        const redSound = new Audio('https://storage.googleapis.com/soundboards/TV%20SHOWS/SQUID%20GAME/MP3/RED%20LIGHT%20ENGLISH%20-%20AUDIO%20FROM%20JAYUZUMI.COM.mp3');
+        const greenSound = new Audio('https://storage.googleapis.com/soundboards/TV%20SHOWS/SQUID%20GAME/MP3/GREEN%20LIGHT%20ENGLISH%20-%20AUDIO%20FROM%20JAYUZUMI.COM.mp3');
+        const soundtrack = new Audio('https://storage.googleapis.com/soundboards/TV%20SHOWS/SQUID%20GAME/MP3/ORIGINAL%20SOUNDTRACK%20-%20AUDIO%20FROM%20JAYUZUMI.COM.mp3');
+
+        let gameActive = false;
+        let currentAudio = null;
+
+        function stopAllSounds() {
+            [startSound, redSound, greenSound, soundtrack].forEach(sound => {
+                sound.pause();
+                sound.currentTime = 0;
+            });
+        }
+
+        startButton.addEventListener('click', () => {
+            gameActive = !gameActive;
+            if (gameActive) {
+                stopAllSounds();
+                startSound.play();
+                currentAudio = startSound;
+                startButton.textContent = 'STOP GAME';
+                startButton.classList.add('stop');
+                gameButtons.forEach(btn => btn.classList.add('active'));
+            } else {
+                stopAllSounds();
+                startButton.textContent = 'START GAME';
+                startButton.classList.remove('stop');
+                gameButtons.forEach(btn => btn.classList.remove('active'));
+            }
+        });
+
+        function playSound(sound) {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+            }
+            sound.play();
+            currentAudio = sound;
+        }
+
+        redButton.addEventListener('click', () => {
+            if (gameActive) {
+                playSound(redSound);
+                redButton.classList.add('pulse');
+                setTimeout(() => redButton.classList.remove('pulse'), 500);
+            }
+        });
+
+        greenButton.addEventListener('click', () => {
+            if (gameActive) {
+                playSound(greenSound);
+                greenButton.classList.add('pulse');
+                setTimeout(() => greenButton.classList.remove('pulse'), 500);
+            }
+        });
+
+        soundtrackButton.addEventListener('click', () => {
+            if (soundtrack.paused) {
+                playSound(soundtrack);
+                soundtrackButton.textContent = '⏹ Stop Soundtrack';
+            } else {
+                soundtrack.pause();
+                soundtrack.currentTime = 0;
+                soundtrackButton.textContent = '🎵 Play Soundtrack';
+            }
+        });
+
+        // Mobile optimization: prevent audio delay
+        document.addEventListener('touchstart', () => {
+            // iOS requires audio to be played after user interaction
+        }, { once: true });
+    </script>
+</body>
+</html>
