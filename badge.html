@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Custom Badge</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #ffffff;
+    }
+    svg {
+      display: block;
+      margin: 1rem auto;
+      border: 1px solid #000;
+      width: 300px;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+
+<svg id="myBadge" viewBox="0 0 400 350" xmlns="http://www.w3.org/2000/svg">
+  <clipPath id="shieldClip">
+    <path d="M 100,20 L 300,20 L 300,110 Q 300,180 200,250 Q 100,180 100,110 Z" />
+  </clipPath>
+  
+  <path 
+    id="shieldOutline"
+    d="M 100,20 L 300,20 L 300,110 Q 300,180 200,250 Q 100,180 100,110 Z"
+    fill="none"
+    stroke="black"
+    stroke-width="4"
+  />
+  <rect
+    id="quad1" 
+    x="100" 
+    y="20" 
+    width="100" 
+    height="90" 
+    fill="#ff0000" 
+    clip-path="url(#shieldClip)"
+  />
+  <rect
+    id="quad2" 
+    x="200" 
+    y="20" 
+    width="100" 
+    height="90" 
+    fill="#00ff00" 
+    clip-path="url(#shieldClip)"
+  />
+  <rect
+    id="quad3" 
+    x="100" 
+    y="110" 
+    width="100" 
+    height="140" 
+    fill="#0000ff" 
+    clip-path="url(#shieldClip)"
+  />
+  <rect
+    id="quad4" 
+    x="200" 
+    y="110" 
+    width="100" 
+    height="140" 
+    fill="#ffff00" 
+    clip-path="url(#shieldClip)"
+  />
+  <text 
+    id="labelText" 
+    x="200" 
+    y="330" 
+    text-anchor="middle" 
+    font-size="20" 
+    fill="#000000" 
+    font-family="sans-serif"
+    display="none"
+  ></text>
+</svg>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // Function to check if a string is a valid CSS color
+    function isValidCSSColor(color) {
+      const s = new Option().style;
+      s.color = color;
+      return s.color !== '';
+    }
+
+    // Function to normalize color values, allowing hex codes without '#'
+    function normalizeColor(color, defaultColor) {
+      color = (color || '').trim(); // Convert null/undefined to '' and trim whitespace
+      if (!color) return defaultColor; // Return default if empty
+      if (isValidCSSColor(color)) return color; // Use as-is if already valid (e.g., 'red', '#ff0000')
+      // Check for 3-digit or 6-digit hex codes without '#'
+      if (/^[0-9A-Fa-f]{3}$|^[0-9A-Fa-f]{6}$/.test(color)) {
+        return `#${color}`; // Prepend '#' to make it a valid color
+      }
+      return defaultColor; // Fallback to default for invalid inputs
+    }
+
+    // Parse URL parameters
+    const params = new URLSearchParams(window.location.search);
+    
+    // Get and normalize colors with defaults
+    const c1 = normalizeColor(params.get('quad1'), '#ff0000');
+    const c2 = normalizeColor(params.get('quad2'), '#00ff00');
+    const c3 = normalizeColor(params.get('quad3'), '#0000ff');
+    const c4 = normalizeColor(params.get('quad4'), '#ffff00');
+    const label = params.get('label')?.trim();
+
+    // Debugging: Log parameters and values
+    console.log('URL Parameters:', Object.fromEntries(params));
+    console.log('Colors:', { c1, c2, c3, c4 });
+    if (label) console.log('Label:', label);
+
+    // Update quadrants
+    const quad1 = document.getElementById('quad1');
+    const quad2 = document.getElementById('quad2');
+    const quad3 = document.getElementById('quad3');
+    const quad4 = document.getElementById('quad4');
+    const labelElement = document.getElementById('labelText');
+
+    // Check if elements are found
+    if (!quad1 || !quad2 || !quad3 || !quad4 || !labelElement) {
+      console.error('One or more SVG elements not found');
+      return;
+    }
+
+    quad1.setAttribute('fill', c1);
+    quad2.setAttribute('fill', c2);
+    quad3.setAttribute('fill', c3);
+    quad4.setAttribute('fill', c4);
+
+    // Update label if provided
+    if (label) {
+      labelElement.textContent = label;
+      labelElement.setAttribute('display', 'inherit');
+    }
+  });
+</script>
+
+</body>
+</html>
