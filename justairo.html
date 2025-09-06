@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Ephemeral Token Proxy</title>
+</head>
+<body>
+  <h2>Ephemeral Token Proxy</h2>
+  <p>This page serves as a proxy between PenguinMod/ScratchX and Hugging Face.</p>
+  <script>
+    // This script installs a service endpoint at /ephemeral
+    // so you can fetch: https://your-proxy-site/ephemeral
+    async function handleRequest(event) {
+      const url = new URL(event.request.url);
+
+      if (url.pathname === "/ephemeral") {
+        // Call the HF Space endpoint
+        const hfResp = await fetch("https://salexai-aircloud.hf.space/ephemeral");
+        const data = await hfResp.text();
+
+        return new Response(data, {
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+          }
+        });
+      }
+
+      // Default: serve the HTML page
+      return fetch(event.request);
+    }
+
+    // For environments like Cloudflare Pages/Workers
+    if (typeof addEventListener !== "undefined" && typeof FetchEvent !== "undefined") {
+      addEventListener("fetch", event => {
+        event.respondWith(handleRequest(event));
+      });
+    }
+  </script>
+</body>
+</html>
