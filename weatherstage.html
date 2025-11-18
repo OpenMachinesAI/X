@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Quick Weather Widget</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", sans-serif;
+    background: #0a0f1c;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+
+  .weather-card {
+    width: 90%;
+    max-width: 350px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    border-radius: 20px;
+    padding: 20px;
+    color: #fff;
+    box-shadow: 0 0 25px rgba(0, 200, 255, 0.25);
+    animation: fadeIn 0.7s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .temp {
+    font-size: 3rem;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .location {
+    text-align: center;
+    font-size: 1.2rem;
+    opacity: 0.8;
+    margin-bottom: 10px;
+  }
+
+  .details {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+  }
+
+  .detail-box {
+    text-align: center;
+    flex: 1;
+  }
+
+  .detail-label {
+    opacity: 0.7;
+    font-size: 0.9rem;
+  }
+</style>
+</head>
+<body>
+  <div class="weather-card">
+    <!-- Primary Selector UI -->
+    <select id="primarySelect" style="width:100%;padding:8px;border-radius:10px;margin-bottom:12px;background:rgba(255,255,255,0.1);color:white;border:none;">
+      <option value="temp">Temperature</option>
+    <div class="location" id="location">Loading...</div>
+    <div class="temp" id="temp">--°C</div>
+    <div class="details">
+      <div class="detail-box">
+        <div class="detail-label">Wind</div>
+        <div id="wind">-- km/h</div>
+      </div>
+      <div class="detail-box">
+        <div class="detail-label">Humidity</div>
+        <div id="humidity">--%</div>
+      </div>
+      <div class="detail-box">
+        <div class="detail-label">Condition</div>
+        <div id="condition">--</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// Uses free Open-Meteo API (no key needed)
+
+async function loadWeather(lat, lon) {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=relativehumidity_2m`;
+  const res = await fetch(url);
+  const data = await res.json();
+
+  const weather = data.current_weather;
+  const humidity = data.hourly.relativehumidity_2m[0];
+
+  document.getElementById("temp").textContent = weather.temperature + "°C";
+  document.getElementById("wind").textContent = weather.windspeed + " km/h";
+  document.getElementById("humidity").textContent = humidity + "%";
+
+  const weatherCodes = {
+    0: "Clear",
+    1: "Mainly Clear",
+    2: "Partly Cloudy",
+    3: "Overcast",
+    45: "Fog",
+    48: "Icy Fog",
+    51: "Light Drizzle",
+    53: "Drizzle",
+    55: "Heavy Drizzle",
+    61: "Light Rain",
+    63: "Rain",
+    65: "Heavy Rain",
+    71: "Light Snow",
+    73: "Snow",
+    75: "Heavy Snow",
+    95: "Thunderstorm",
+  };
+  document.getElementById("condition").textContent = weatherCodes[weather.weathercode] || "N/A";
+}
+
+function getLocation() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const lat = pos.coords.latitude.toFixed(2);
+      const lon = pos.coords.longitude.toFixed(2);
+
+      document.getElementById("location").textContent = `Lat ${lat}, Lon ${lon}`;
+      loadWeather(lat, lon);
+    });
+  } else {
+    document.getElementById("location").textContent = "Location Not Available";
+  }
+}
+
+const params = new URLSearchParams(window.location.search);
+
+function applyPrimary() {
+  const primary = params.get("primary") || "temp";
+
+  const elements = {
+    temp: document.getElementById("temp"),
+    wind: document.getElementById("wind").parentElement,
+    humidity: document.getElementById("humidity").parentElement,
+    condition: document.getElementById("condition").parentElement,
+    location: document.getElementById("location"),
+  };
+
+  Object.values(elements).forEach(el => {
+    el.style.transform = "scale(1)";
+    el.style.opacity = "0.9";
+  });
+
+  if (elements[primary]) {
+    elements[primary].style.transform = "scale(1.25)";
+    elements[primary].style.opacity = "1";
+  }
+}
+
+function applyVisibility() {
+  const showTemp = params.get("showTemp") !== "false";
+  const showWind = params.get("showWind") !== "false";
+  const showHumidity = params.get("showHumidity") !== "false";
+  const showCondition = params.get("showCondition") !== "false";
+  const showLocation = params.get("showLocation") !== "false";
+
+  document.getElementById("temp").style.display = showTemp ? "block" : "none";
+  document.getElementById("wind").parentElement.style.display = showWind ? "block" : "none";
+  document.getElementById("humidity").parentElement.style.display = showHumidity ? "block" : "none";
+  document.getElementById("condition").parentElement.style.display = showCondition ? "block" : "none";
+  document.getElementById("location").style.display = showLocation ? "block" : "none";
+}
+
+applyPrimary();
+applyVisibility();
+getLocation();
+</script>
+</body>
+</html>
