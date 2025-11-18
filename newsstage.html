@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>News Headlines Card</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", sans-serif;
+    background: #0a0f1c;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+
+  .news-card {
+    width: 90%;
+    max-width: 400px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    border-radius: 20px;
+    padding: 20px;
+    color: #fff;
+    box-shadow: 0 0 25px rgba(0, 200, 255, 0.25);
+    animation: fadeIn 0.7s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .headline {
+    margin-bottom: 15px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    transition: 0.2s;
+    text-decoration: none;
+    color: #fff;
+  }
+
+  .headline:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .title {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .source {
+    font-size: 0.8rem;
+    opacity: 0.7;
+    margin-top: 5px;
+  }
+</style>
+</head>
+<body>
+  <div class="news-card" id="news-card">Loading news...</div>
+
+<script>
+// =============== RSS FEED MAP =====================
+const FEEDS = {
+  top: "https://www.cbc.ca/webfeed/rss/rss-topstories",
+  world: "https://www.cbc.ca/webfeed/rss/rss-world",
+  canada: "https://www.cbc.ca/webfeed/rss/rss-canada",
+  politics: "https://www.cbc.ca/webfeed/rss/rss-politics",
+  business: "https://www.cbc.ca/webfeed/rss/rss-business",
+  health: "https://www.cbc.ca/webfeed/rss/rss-health",
+  arts: "https://www.cbc.ca/webfeed/rss/rss-arts",
+  tech: "https://www.cbc.ca/webfeed/rss/rss-technology",
+  indigenous: "https://www.cbc.ca/webfeed/rss/rss-Indigenous",
+  sports: "https://www.cbc.ca/webfeed/rss/rss-sports",
+  mlb: "https://www.cbc.ca/webfeed/rss/rss-sports-mlb",
+  nba: "https://www.cbc.ca/webfeed/rss/rss-sports-nba",
+  curling: "https://www.cbc.ca/webfeed/rss/rss-sports-curling",
+  cfl: "https://www.cbc.ca/webfeed/rss/rss-sports-cfl",
+  nfl: "https://www.cbc.ca/webfeed/rss/rss-sports-nfl",
+  nhl: "https://www.cbc.ca/webfeed/rss/rss-sports-nhl",
+  soccer: "https://www.cbc.ca/webfeed/rss/rss-sports-soccer",
+  figureskating: "https://www.cbc.ca/webfeed/rss/rss-sports-figureskating",
+  golf: "https://www.cbc.ca/webfeed/rss/rss-sports-golf",
+  olympics: "https://www.cbc.ca/webfeed/rss/rss-sports-olympics",
+  skiing: "https://www.cbc.ca/webfeed/rss/rss-sports-skiing",
+  tennis: "https://www.cbc.ca/webfeed/rss/rss-sports-tennis",
+};
+
+// =============== URL PARAMS =======================
+const params = new URLSearchParams(location.search);
+const feedParam = params.get("feed") || "top";
+const limit = parseInt(params.get("limit")) || 5;
+
+// =============== RSS FETCH FUNCTION ===============
+async function loadRSS(url) {
+  try {
+    const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`);
+    const data = await res.json();
+        const items = data.items || [];
+    return items.slice(0, limit).map(item => ({
+      title: item.title || "Untitled",
+      link: item.link || "#",
+      source: item.author || "CBC",
+    }));
+   [...xml.querySelectorAll("item")].slice(0, limit).map(item => ({
+      title: item.querySelector("title")?.textContent || "Untitled",
+      link: item.querySelector("link")?.textContent || "#",
+      source: item.querySelector("source")?.textContent || "CBC",
+    }));
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+}
+
+// =============== RENDER ===========================
+async function loadNews() {
+  const feedURL = FEEDS[feedParam] || FEEDS.top;
+  const card = document.getElementById("news-card");
+  card.innerHTML = "Loading...";
+
+  const items = await loadRSS(feedURL);
+  card.innerHTML = "";
+
+  items.forEach(article => {
+    const div = document.createElement("a");
+    div.href = article.link;
+    div.target = "_blank";
+    div.className = "headline";
+    div.innerHTML = `
+      <div class="title">${article.title}</div>
+      <div class="source">${article.source}</div>
+    `;
+    card.appendChild(div);
+  });
+}
+
+loadNews();
+</script>
+</body>
+</html>
