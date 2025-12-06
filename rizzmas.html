@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Christmas List 🎄</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: linear-gradient(#c60000, #740000);
+        color: white;
+        margin: 0;
+        padding: 0;
+        text-align: center;
+    }
+
+    h1 {
+        font-size: 2.4rem;
+        margin-top: 25px;
+        text-shadow: 3px 3px 10px black;
+    }
+
+    .list {
+        width: 92%;
+        max-width: 700px;
+        margin: 30px auto;
+        background: rgba(255,255,255,0.12);
+        padding: 18px;
+        border-radius: 18px;
+        backdrop-filter: blur(6px);
+    }
+
+    .item {
+        background: rgba(0,0,0,0.3);
+        padding: 20px;
+        margin: 14px 0;
+        border-radius: 14px;
+        font-size: 1.2rem;
+        line-height: 1.4;
+        transition: background 0.2s, transform 0.1s;
+        user-select: none;
+    }
+
+    .item:active {
+        transform: scale(0.97);
+    }
+
+    .clickable {
+        cursor: pointer;
+    }
+
+    .clickable:hover {
+        background: rgba(0,0,0,0.45);
+    }
+
+    .nolink {
+        opacity: 0.85;
+    }
+
+    @media (max-width: 500px) {
+        h1 {
+            font-size: 2rem;
+        }
+        .item {
+            font-size: 1.1rem;
+            padding: 22px;
+        }
+    }
+</style>
+</head>
+<body>
+
+<h1> Christmas List 🎅✨</h1>
+
+<div class="list">
+
+    <div class="item clickable" data-link="https://www.facebook.com/marketplace/item/1126299989697076/?ref=search&referral_code=null&referral_story_type=post&tracking=browse_serp%3A90dbf491-f28f-4029-9629-30d1758dae1f">
+        DJI Phantom 3 or 4 (MAIN ITEM)
+    </div>
+
+    <div class="item clickable" data-link="https://shorturl.at/olnCT">
+        RPI 0 (OTHER ITEM)
+    </div>
+
+    <div class="item clickable" data-link="https://shorturl.at/mBzKq">
+        RPI 0 Display (Amazon)
+    </div>
+
+    <div class="item clickable" data-link="https://www.amazon.ca/Wolfwhoop-600TVL-Camera-Transmitter-Antenna/dp/B06X96VPSQ">
+        FPV Camera (x2)
+    </div>
+
+    <div class="item nolink">
+        3D Printer Filament — White, Silver & Red (BC Hobbies)
+    </div>
+
+    <div class="item clickable" data-link="https://www.amazon.ca/Brushless-Controller-Independent-Regulator-Helicopter/dp/B0BR2C95JR">
+        Electronic Speed Controller (x2)
+    </div>
+
+    <div class="item clickable" data-link="https://www.amazon.ca/Ducted-Blades-QF2611%E2%80%914600KV-Brushless-Airplane/dp/B09GW66DKW">
+        50mm EDF Fan
+    </div>
+
+</div>
+
+<script>
+// Make each item open its link on tap
+document.querySelectorAll(".clickable").forEach(item => {
+    item.addEventListener("click", () => {
+        const link = item.getAttribute("data-link");
+        if (link) window.open(link, "_blank");
+    });
+});
+</script>
+
+</body>
+</html>
