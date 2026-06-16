@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airo Center (Live)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .header h1 {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .webcam-section {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            position: relative;
+            aspect-ratio: 16 / 9;
+            width: 100%;
+        }
+
+        #webcam {
+            width: 100%;
+            height: 100%;
+            display: block;
+            background: #000;
+            object-fit: cover;
+        }
+
+        .info-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            width: 100%;
+        }
+
+        .time-display {
+            text-align: center;
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .time-label {
+            font-size: 11px;
+            color: #667eea;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .time-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .countdown-display {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .countdown-label {
+            font-size: 11px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .countdown-value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .countdown-progress {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .countdown-bar {
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .weather-container {
+            display: contents;
+        }
+
+        .weather-item {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .weather-item.sunrise {
+            border-left-color: #fbbf24;
+        }
+
+        .weather-item.sunset {
+            border-left-color: #f97316;
+        }
+
+        .weather-item.wind {
+            border-left-color: #06b6d4;
+        }
+
+        .weather-label {
+            font-size: 11px;
+            color: #667eea;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .weather-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 3px;
+        }
+
+        .weather-desc {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .temp-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .temp-label {
+            font-size: 11px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .temp-value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .temp-condition {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-top: 5px;
+            text-transform: capitalize;
+        }
+
+        .loading {
+            text-align: center;
+            color: #667eea;
+            font-size: 14px;
+            padding: 10px;
+        }
+
+        @media (max-width: 1024px) {
+            .header h1 {
+                font-size: 36px;
+            }
+
+            .info-section {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 28px;
+            }
+
+            .info-section {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Airo Center (live)</h1>
+        </div>
+
+        <div class="webcam-section">
+            <video id="webcam" autoplay playsinline></video>
+        </div>
+
+        <div class="info-section">
+            <div class="time-display">
+                <div class="time-label">Current Time</div>
+                <div class="time-value" id="current-time">--:-- --</div>
+            </div>
+
+            <div class="countdown-display">
+                <div class="countdown-label">Time Remaining</div>
+                <div class="countdown-value" id="countdown-value">0d 00:00:00</div>
+                <div class="countdown-progress">
+                    <div class="countdown-bar" id="countdown-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="temp-section">
+                <div class="temp-label">Temperature</div>
+                <div class="temp-value" id="temp-display">--°C</div>
+                <div class="temp-condition" id="weather-condition">Loading...</div>
+            </div>
+
+            <div class="weather-item sunrise">
+                <div class="weather-label">Sunrise</div>
+                <div class="weather-value" id="sunrise">--:--</div>
+                <div class="weather-desc">AM</div>
+            </div>
+
+            <div class="weather-item sunset">
+                <div class="weather-label">Sunset</div>
+                <div class="weather-value" id="sunset">--:--</div>
+                <div class="weather-desc">PM</div>
+            </div>
+
+            <div class="weather-item wind">
+                <div class="weather-label">Wind Speed</div>
+                <div class="weather-value" id="wind-speed">--</div>
+                <div class="weather-desc">km/h</div>
+            </div>
+
+            <div class="weather-item">
+                <div class="weather-label">Humidity</div>
+                <div class="weather-value" id="humidity">--%</div>
+                <div class="weather-desc">Moisture</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let startTime = Date.now();
+        let tomorrowSameTime = new Date(new Date().getTime() + 24 * 60 * 60 * 1000);
+
+        // Request webcam access
+        async function startWebcam() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user' }
+                });
+                const video = document.getElementById('webcam');
+                video.srcObject = stream;
+            } catch (error) {
+                console.error('Webcam error:', error);
+                document.getElementById('webcam').style.display = 'none';
+            }
+        }
+
+        // Update time display
+        function updateTime() {
+            const now = new Date();
+            let hours = now.getHours();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+
+            const timeStr = `${hours}:${String(minutes).padStart(2, '0')} ${ampm}`;
+            document.getElementById('current-time').textContent = timeStr;
+        }
+
+        // Update countdown
+        function updateCountdown() {
+            const now = Date.now();
+            const remaining = tomorrowSameTime - now;
+
+            if (remaining <= 0) {
+                tomorrowSameTime = new Date(new Date().getTime() + 24 * 60 * 60 * 1000);
+            }
+
+            const totalSeconds = Math.floor(remaining / 1000);
+            const days = Math.floor(totalSeconds / (24 * 3600));
+            const hours = Math.floor((totalSeconds % (24 * 3600)) / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            const countdownStr = `${days}d ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            document.getElementById('countdown-value').textContent = countdownStr;
+
+            // Update progress bar (24 hour cycle)
+            const totalMs = 24 * 60 * 60 * 1000;
+            const progressPercent = ((totalMs - remaining) / totalMs) * 100;
+            document.getElementById('countdown-bar').style.width = Math.max(0, Math.min(100, progressPercent)) + '%';
+        }
+
+        // Get weather data from Open-Meteo API
+        async function fetchWeather() {
+            try {
+                if (!navigator.geolocation) {
+                    throw new Error('Geolocation not supported');
+                }
+
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const { latitude, longitude } = position.coords;
+
+                    const response = await fetch(
+                        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=sunrise,sunset&timezone=auto`
+                    );
+
+                    const data = await response.json();
+                    const current = data.current;
+                    const daily = data.daily;
+
+                    // Temperature
+                    const temp = Math.round(current.temperature_2m);
+                    document.getElementById('temp-display').textContent = `${temp}°C`;
+
+                    // Weather condition
+                    const conditions = {
+                        0: 'Clear sky',
+                        1: 'Mainly clear',
+                        2: 'Partly cloudy',
+                        3: 'Overcast',
+                        45: 'Foggy',
+                        48: 'Foggy',
+                        51: 'Light drizzle',
+                        61: 'Slight rain',
+                        71: 'Slight snow',
+                        80: 'Rain showers',
+                        85: 'Snow showers',
+                        95: 'Thunderstorm'
+                    };
+
+                    document.getElementById('weather-condition').textContent =
+                        conditions[current.weather_code] || 'Unknown';
+
+                    // Sunrise/Sunset
+                    const sunrise = new Date(daily.sunrise[0]);
+                    const sunset = new Date(daily.sunset[0]);
+
+                    const formatTime = (date) => {
+                        let hours = date.getHours();
+                        const minutes = date.getMinutes();
+                        return `${hours}:${String(minutes).padStart(2, '0')}`;
+                    };
+
+                    document.getElementById('sunrise').textContent = formatTime(sunrise);
+                    document.getElementById('sunset').textContent = formatTime(sunset);
+
+                    // Wind and Humidity
+                    document.getElementById('wind-speed').textContent = Math.round(current.wind_speed_10m);
+                    document.getElementById('humidity').textContent = current.relative_humidity_2m;
+                });
+            } catch (error) {
+                console.error('Weather fetch error:', error);
+                document.getElementById('weather-condition').textContent = 'Unable to load';
+            }
+        }
+
+        // Initialize
+        startWebcam();
+        fetchWeather();
+
+        // Update timers every second
+        updateTime();
+        updateCountdown();
+        setInterval(updateTime, 1000);
+        setInterval(updateCountdown, 1000);
+    </script>
+</body>
+</html>
