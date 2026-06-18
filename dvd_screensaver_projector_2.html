@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DVD Screensaver Projector</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #000;
+  font-family: Arial, sans-serif;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+.canvas {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  background: #000;
+}
+
+.bounce-boundary {
+  position: absolute;
+  border: 2px dashed rgba(0, 255, 255, 0.2);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.bounce-boundary.visible {
+  border-color: rgba(0, 255, 255, 0.5);
+  pointer-events: auto;
+}
+
+.bounce-boundary.visible::before,
+.bounce-boundary.visible::after {
+  content: '';
+  position: absolute;
+  background: rgba(0, 255, 255, 0.6);
+}
+
+.boundary-handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: rgba(0, 255, 255, 0.6);
+  border: 2px solid #00FFFF;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 5;
+  transition: all 0.2s;
+}
+
+.boundary-handle:hover {
+  width: 16px;
+  height: 16px;
+  background: #00FFFF;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
+}
+
+.boundary-handle.corner-tl {
+  top: -6px;
+  left: -6px;
+  cursor: nwse-resize;
+}
+
+.boundary-handle.corner-tr {
+  top: -6px;
+  right: -6px;
+  cursor: nesw-resize;
+}
+
+.boundary-handle.corner-bl {
+  bottom: -6px;
+  left: -6px;
+  cursor: nesw-resize;
+}
+
+.boundary-handle.corner-br {
+  bottom: -6px;
+  right: -6px;
+  cursor: nwse-resize;
+}
+
+.boundary-handle.edge-t {
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+
+.boundary-handle.edge-b {
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+
+.boundary-handle.edge-l {
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+
+.boundary-handle.edge-r {
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+
+.boundary-center {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  cursor: move;
+  z-index: 4;
+}
+
+.boundary-center::before {
+  content: '↔';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0, 255, 255, 0.4);
+  font-size: 14px;
+}
+
+.boundary-center:hover::before {
+  color: rgba(0, 255, 255, 0.8);
+}
+
+.screensaver-container {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 20px rgba(100, 200, 255, 0.4));
+  transition: filter 0.1s ease;
+  z-index: 2;
+}
+
+.screensaver-container:hover {
+  filter: drop-shadow(0 0 40px rgba(255, 100, 200, 0.6));
+}
+
+.screensaver-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+
+.screensaver-container.fallback {
+  background: linear-gradient(135deg, rgba(100, 200, 255, 0.3), rgba(255, 100, 200, 0.3));
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #00FFFF;
+}
+
+.toggle-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 255, 255, 0.2);
+  border: 2px solid #00FFFF;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 999;
+  font-size: 20px;
+  transition: all 0.3s;
+  color: #00FFFF;
+}
+
+.toggle-button:hover {
+  background: rgba(0, 255, 255, 0.4);
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+}
+
+.control-panel {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  background: rgba(20, 20, 40, 0.95);
+  border: 2px solid #00FFFF;
+  border-radius: 12px;
+  padding: 20px;
+  color: #00FFFF;
+  font-size: 14px;
+  z-index: 1000;
+  max-width: 320px;
+  box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
+  max-height: 85vh;
+  overflow-y: auto;
+  transition: all 0.3s ease;
+}
+
+.control-panel.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(400px);
+}
+
+.control-group {
+  margin-bottom: 15px;
+}
+
+.control-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.control-group input {
+  width: 100%;
+  padding: 8px;
+  background: rgba(0, 255, 255, 0.1);
+  border: 1px solid #00FFFF;
+  border-radius: 6px;
+  color: #00FFFF;
+  font-size: 13px;
+}
+
+.control-group input:focus {
+  outline: none;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+.control-group input[type="range"] {
+  padding: 0;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(0, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.control-group input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #00FFFF;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+}
+
+.control-group input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #00FFFF;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+}
+
+.section-header {
+  font-weight: bold;
+  color: #FFB700;
+  margin-top: 15px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(255, 183, 0, 0.3);
+  padding-bottom: 8px;
+}
+
+.status {
+  padding: 10px;
+  background: rgba(0, 255, 255, 0.05);
+  border-radius: 6px;
+  margin-top: 15px;
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+  line-height: 1.6;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  background: rgba(0, 255, 255, 0.1);
+  border: 1px solid #00FFFF;
+  color: #00FFFF;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  margin-top: 10px;
+  transition: all 0.3s;
+  font-size: 13px;
+}
+
+button:hover {
+  background: rgba(0, 255, 255, 0.2);
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+}
+
+.info-bar {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  background: rgba(20, 20, 40, 0.9);
+  border: 2px solid #FFB700;
+  border-radius: 10px;
+  padding: 15px 25px;
+  color: #FFB700;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  z-index: 1000;
+  box-shadow: 0 0 20px rgba(255, 183, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.info-bar.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-300px);
+}
+
+.bounce-counter {
+  font-weight: bold;
+  font-size: 16px;
+  color: #00FF00;
+}
+
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.two-col .control-group {
+  margin-bottom: 0;
+}
+
+.two-col .control-group input {
+  font-size: 12px;
+  padding: 6px;
+}
+
+.instruction-box {
+  padding: 10px;
+  background: rgba(255, 183, 0, 0.1);
+  border-left: 3px solid #FFB700;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #FFB700;
+  margin-bottom: 15px;
+  line-height: 1.4;
+}
+</style>
+</head>
+<body>
+
+<div class="canvas" id="canvas">
+  <div class="bounce-boundary visible" id="boundary">
+    <div class="boundary-handle corner-tl" data-handle="corner-tl"></div>
+    <div class="boundary-handle corner-tr" data-handle="corner-tr"></div>
+    <div class="boundary-handle corner-bl" data-handle="corner-bl"></div>
+    <div class="boundary-handle corner-br" data-handle="corner-br"></div>
+    <div class="boundary-handle edge-t" data-handle="edge-t"></div>
+    <div class="boundary-handle edge-b" data-handle="edge-b"></div>
+    <div class="boundary-handle edge-l" data-handle="edge-l"></div>
+    <div class="boundary-handle edge-r" data-handle="edge-r"></div>
+    <div class="boundary-center" id="boundaryCenter"></div>
+  </div>
+  <div class="screensaver-container" id="screensaver">
+    <img id="screensaverImage" src="https://openmachinesai.github.io/X/backdrop1%20(2).svg" alt="Screensaver Image">
+  </div>
+</div>
+
+<!-- Info Bar -->
+<div class="info-bar" id="infoBar">
+  DVD Screensaver | Bounces: <span class="bounce-counter" id="bounceCount">0</span>
+</div>
+
+<!-- Toggle Button -->
+<div class="toggle-button" id="toggleButton" title="Toggle Controls (C)">⚙️</div>
+
+<!-- Control Panel -->
+<div class="control-panel" id="controlPanel">
+  <div class="instruction-box">
+    💡 Drag the boundary edges and corners to customize the bounce area. Drag the center to move.
+  </div>
+
+  <div class="section-header">🎬 Animation</div>
+  
+  <div class="control-group">
+    <label>Bounce Speed</label>
+    <input type="range" id="speedSlider" min="5" max="200" step="5" value="50">
+    <div style="margin-top: 6px; font-size: 11px; color: rgba(0, 255, 255, 0.7);">
+      <span id="speedDisplay">50</span>s per bounce
+    </div>
+  </div>
+
+  <div class="control-group">
+    <label>Image Size</label>
+    <input type="range" id="sizeSlider" min="50" max="400" step="10" value="300">
+    <div style="margin-top: 6px; font-size: 11px; color: rgba(0, 255, 255, 0.7);">
+      <span id="sizeDisplay">300</span>px
+    </div>
+  </div>
+
+  <div class="control-group">
+    <label>Glow Intensity</label>
+    <input type="range" id="glowSlider" min="0" max="100" step="5" value="40">
+    <div style="margin-top: 6px; font-size: 11px; color: rgba(0, 255, 255, 0.7);">
+      <span id="glowDisplay">40</span>%
+    </div>
+  </div>
+
+  <div class="section-header">🎯 Bounce Area (Drag Boundary)</div>
+  
+  <div class="two-col">
+    <div class="control-group">
+      <label>Left (X)</label>
+      <input type="number" id="bounceLeft" value="0" step="10">
+    </div>
+    <div class="control-group">
+      <label>Top (Y)</label>
+      <input type="number" id="bounceTop" value="0" step="10">
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="control-group">
+      <label>Width</label>
+      <input type="number" id="bounceWidth" value="0" step="10">
+    </div>
+    <div class="control-group">
+      <label>Height</label>
+      <input type="number" id="bounceHeight" value="0" step="10">
+    </div>
+  </div>
+
+  <div class="section-header">🖼️ Image</div>
+
+  <div class="control-group">
+    <label>Image URL</label>
+    <input type="text" id="imageUrl" placeholder="Enter image URL" value="https://openmachinesai.github.io/X/backdrop1%20(2).svg">
+    <button id="loadImageButton" style="margin-top: 8px;">Load Image</button>
+  </div>
+
+  <div class="section-header">⚡ Actions</div>
+
+  <button id="resetButton">Reset Position</button>
+  <button id="pauseButton">Pause</button>
+  <button id="fitFullscreen">Fit to Screen</button>
+
+  <div class="status">
+    <div>📍 X: <span id="posX">0</span>px</div>
+    <div>📍 Y: <span id="posY">0</span>px</div>
+    <div style="margin-top: 8px;">🔀 VX: <span id="velX">0</span> VY: <span id="velY">0</span></div>
+    <div style="margin-top: 8px;">⏸️ Status: <span id="status">Running</span></div>
+    <div style="margin-top: 8px; color: rgba(0, 255, 255, 0.6);">Image: <span id="imageStatus">Loading...</span></div>
+    <div style="margin-top: 8px; font-size: 10px; color: rgba(255, 183, 0, 0.6);">Press C to toggle | ESC to fullscreen</div>
+  </div>
+</div>
+
+<script>
+class DVDScreensaver {
+  constructor() {
+    this.container = document.getElementById('screensaver');
+    this.image = document.getElementById('screensaverImage');
+    this.canvas = document.getElementById('canvas');
+    this.boundary = document.getElementById('boundary');
+    this.boundaryCenter = document.getElementById('boundaryCenter');
+    this.controlPanel = document.getElementById('controlPanel');
+    this.infoBar = document.getElementById('infoBar');
+    this.toggleButton = document.getElementById('toggleButton');
+    
+    this.x = 100;
+    this.y = 100;
+    this.vx = 1;
+    this.vy = 1;
+    this.size = 300;
+    this.bounceTime = 50;
+    this.bounces = 0;
+    this.isPaused = false;
+    this.animationId = null;
+    this.lastTime = Date.now();
+    
+    this.bounceAreaX = 0;
+    this.bounceAreaY = 0;
+    this.bounceAreaWidth = window.innerWidth;
+    this.bounceAreaHeight = window.innerHeight;
+    
+    this.draggingHandle = null;
+    this.dragStartX = 0;
+    this.dragStartY = 0;
+    this.dragStartArea = {};
+    
+    this.updateSize();
+    this.setupControls();
+    this.setupImageLoadHandler();
+    this.setupKeyboardShortcuts();
+    this.setupBoundaryDragging();
+    this.updateBoundary();
+    this.animate();
+  }
+
+  setupBoundaryDragging() {
+    const handles = this.boundary.querySelectorAll('.boundary-handle');
+    
+    handles.forEach(handle => {
+      handle.addEventListener('mousedown', (e) => {
+        this.startDragHandle(e, handle.dataset.handle);
+      });
+    });
+
+    this.boundaryCenter.addEventListener('mousedown', (e) => {
+      this.startDragHandle(e, 'move');
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      this.dragHandle(e);
+    });
+
+    document.addEventListener('mouseup', () => {
+      this.endDragHandle();
+    });
+  }
+
+  startDragHandle(e, handle) {
+    e.preventDefault();
+    this.draggingHandle = handle;
+    this.dragStartX = e.clientX;
+    this.dragStartY = e.clientY;
+    this.dragStartArea = {
+      x: this.bounceAreaX,
+      y: this.bounceAreaY,
+      width: this.bounceAreaWidth,
+      height: this.bounceAreaHeight
+    };
+  }
+
+  dragHandle(e) {
+    if (!this.draggingHandle) return;
+
+    const deltaX = e.clientX - this.dragStartX;
+    const deltaY = e.clientY - this.dragStartY;
+    const handle = this.draggingHandle;
+
+    if (handle === 'move') {
+      this.bounceAreaX = Math.max(0, this.dragStartArea.x + deltaX);
+      this.bounceAreaY = Math.max(0, this.dragStartArea.y + deltaY);
+    } else if (handle === 'corner-tl') {
+      this.bounceAreaX = Math.max(0, this.dragStartArea.x + deltaX);
+      this.bounceAreaY = Math.max(0, this.dragStartArea.y + deltaY);
+      this.bounceAreaWidth = Math.max(100, this.dragStartArea.width - deltaX);
+      this.bounceAreaHeight = Math.max(100, this.dragStartArea.height - deltaY);
+    } else if (handle === 'corner-tr') {
+      this.bounceAreaY = Math.max(0, this.dragStartArea.y + deltaY);
+      this.bounceAreaWidth = Math.max(100, this.dragStartArea.width + deltaX);
+      this.bounceAreaHeight = Math.max(100, this.dragStartArea.height - deltaY);
+    } else if (handle === 'corner-bl') {
+      this.bounceAreaX = Math.max(0, this.dragStartArea.x + deltaX);
+      this.bounceAreaWidth = Math.max(100, this.dragStartArea.width - deltaX);
+      this.bounceAreaHeight = Math.max(100, this.dragStartArea.height + deltaY);
+    } else if (handle === 'corner-br') {
+      this.bounceAreaWidth = Math.max(100, this.dragStartArea.width + deltaX);
+      this.bounceAreaHeight = Math.max(100, this.dragStartArea.height + deltaY);
+    } else if (handle === 'edge-t') {
+      this.bounceAreaY = Math.max(0, this.dragStartArea.y + deltaY);
+      this.bounceAreaHeight = Math.max(100, this.dragStartArea.height - deltaY);
+    } else if (handle === 'edge-b') {
+      this.bounceAreaHeight = Math.max(100, this.dragStartArea.height + deltaY);
+    } else if (handle === 'edge-l') {
+      this.bounceAreaX = Math.max(0, this.dragStartArea.x + deltaX);
+      this.bounceAreaWidth = Math.max(100, this.dragStartArea.width - deltaX);
+    } else if (handle === 'edge-r') {
+      this.bounceAreaWidth = Math.max(100, this.dragStartArea.width + deltaX);
+    }
+
+    this.updateBoundary();
+    this.updateInputs();
+    this.updateVelocity();
+  }
+
+  endDragHandle() {
+    this.draggingHandle = null;
+  }
+
+  updateInputs() {
+    document.getElementById('bounceLeft').value = Math.round(this.bounceAreaX);
+    document.getElementById('bounceTop').value = Math.round(this.bounceAreaY);
+    document.getElementById('bounceWidth').value = Math.round(this.bounceAreaWidth);
+    document.getElementById('bounceHeight').value = Math.round(this.bounceAreaHeight);
+  }
+
+  setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      if (e.key.toLowerCase() === 'c') {
+        this.toggleControlPanel();
+      }
+      if (e.key === 'Escape') {
+        this.toggleFullscreen();
+      }
+    });
+  }
+
+  toggleControlPanel() {
+    this.controlPanel.classList.toggle('hidden');
+    this.infoBar.classList.toggle('hidden');
+  }
+
+  toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.log('Fullscreen request failed:', err);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  }
+
+  setupImageLoadHandler() {
+    this.image.onload = () => {
+      document.getElementById('imageStatus').textContent = 'Loaded ✓';
+      this.container.classList.remove('fallback');
+    };
+
+    this.image.onerror = () => {
+      document.getElementById('imageStatus').textContent = 'Failed - Fallback';
+      this.container.classList.add('fallback');
+      this.container.innerHTML = '🎨 Image not loaded';
+    };
+  }
+
+  updateSize() {
+    this.container.style.width = this.size + 'px';
+    this.container.style.height = this.size + 'px';
+  }
+
+  updateBoundary() {
+    this.boundary.style.left = this.bounceAreaX + 'px';
+    this.boundary.style.top = this.bounceAreaY + 'px';
+    this.boundary.style.width = this.bounceAreaWidth + 'px';
+    this.boundary.style.height = this.bounceAreaHeight + 'px';
+  }
+
+  setupControls() {
+    document.getElementById('speedSlider').addEventListener('input', (e) => {
+      this.bounceTime = parseInt(e.target.value);
+      document.getElementById('speedDisplay').textContent = this.bounceTime;
+      this.updateVelocity();
+    });
+
+    document.getElementById('sizeSlider').addEventListener('input', (e) => {
+      this.size = parseInt(e.target.value);
+      document.getElementById('sizeDisplay').textContent = this.size;
+      this.updateSize();
+    });
+
+    document.getElementById('glowSlider').addEventListener('input', (e) => {
+      const intensity = parseInt(e.target.value) / 100;
+      document.getElementById('glowDisplay').textContent = e.target.value;
+      this.container.style.filter = `drop-shadow(0 0 ${20 * intensity}px rgba(100, 200, 255, ${0.4 * intensity}))`;
+    });
+
+    document.getElementById('bounceLeft').addEventListener('change', (e) => {
+      this.bounceAreaX = parseInt(e.target.value) || 0;
+      this.updateBoundary();
+    });
+
+    document.getElementById('bounceTop').addEventListener('change', (e) => {
+      this.bounceAreaY = parseInt(e.target.value) || 0;
+      this.updateBoundary();
+    });
+
+    document.getElementById('bounceWidth').addEventListener('change', (e) => {
+      this.bounceAreaWidth = parseInt(e.target.value) || window.innerWidth;
+      this.updateBoundary();
+    });
+
+    document.getElementById('bounceHeight').addEventListener('change', (e) => {
+      this.bounceAreaHeight = parseInt(e.target.value) || window.innerHeight;
+      this.updateBoundary();
+    });
+
+    document.getElementById('loadImageButton').addEventListener('click', () => {
+      const url = document.getElementById('imageUrl').value;
+      this.loadImage(url);
+    });
+
+    document.getElementById('imageUrl').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        const url = document.getElementById('imageUrl').value;
+        this.loadImage(url);
+      }
+    });
+
+    document.getElementById('resetButton').addEventListener('click', () => {
+      this.x = this.bounceAreaX + 100;
+      this.y = this.bounceAreaY + 100;
+      this.vx = 1;
+      this.vy = 1;
+      this.bounces = 0;
+      this.updateVelocity();
+      this.updatePosition();
+    });
+
+    document.getElementById('pauseButton').addEventListener('click', () => {
+      this.isPaused = !this.isPaused;
+      document.getElementById('pauseButton').textContent = this.isPaused ? 'Resume' : 'Pause';
+      document.getElementById('status').textContent = this.isPaused ? 'Paused' : 'Running';
+    });
+
+    document.getElementById('fitFullscreen').addEventListener('click', () => {
+      this.bounceAreaX = 0;
+      this.bounceAreaY = 0;
+      this.bounceAreaWidth = window.innerWidth;
+      this.bounceAreaHeight = window.innerHeight;
+      this.updateBoundary();
+      this.updateInputs();
+      this.updateVelocity();
+    });
+
+    this.toggleButton.addEventListener('click', () => {
+      this.toggleControlPanel();
+    });
+  }
+
+  loadImage(url) {
+    document.getElementById('imageStatus').textContent = 'Loading...';
+    const tempImage = new Image();
+    tempImage.onload = () => {
+      this.image.src = url;
+      document.getElementById('imageUrl').value = url;
+    };
+    tempImage.onerror = () => {
+      document.getElementById('imageStatus').textContent = 'URL Invalid';
+    };
+    tempImage.src = url;
+  }
+
+  updateVelocity() {
+    const diagonal = Math.sqrt(
+      this.bounceAreaWidth ** 2 + this.bounceAreaHeight ** 2
+    );
+    const pixelsPerSecond = diagonal / this.bounceTime;
+    const speed = pixelsPerSecond / 60;
+    
+    const angle = Math.atan2(this.vy, this.vx);
+    this.vx = Math.cos(angle) * speed;
+    this.vy = Math.sin(angle) * speed;
+  }
+
+  updatePosition() {
+    document.getElementById('posX').textContent = Math.round(this.x);
+    document.getElementById('posY').textContent = Math.round(this.y);
+    document.getElementById('velX').textContent = this.vx.toFixed(2);
+    document.getElementById('velY').textContent = this.vy.toFixed(2);
+    document.getElementById('bounceCount').textContent = this.bounces;
+    
+    this.container.style.left = this.x + 'px';
+    this.container.style.top = this.y + 'px';
+  }
+
+  animate() {
+    const now = Date.now();
+    const deltaTime = (now - this.lastTime) / 1000;
+    this.lastTime = now;
+
+    if (!this.isPaused) {
+      this.x += this.vx * deltaTime * 60;
+      this.y += this.vy * deltaTime * 60;
+
+      const maxX = this.bounceAreaX + this.bounceAreaWidth - this.size;
+      const maxY = this.bounceAreaY + this.bounceAreaHeight - this.size;
+      const minX = this.bounceAreaX;
+      const minY = this.bounceAreaY;
+
+      if (this.x >= maxX || this.x <= minX) {
+        this.vx *= -1;
+        this.x = this.x >= maxX ? maxX : minX;
+        this.bounces++;
+      }
+
+      if (this.y >= maxY || this.y <= minY) {
+        this.vy *= -1;
+        this.y = this.y >= maxY ? maxY : minY;
+        this.bounces++;
+      }
+    }
+
+    this.updatePosition();
+    this.animationId = requestAnimationFrame(() => this.animate());
+  }
+}
+
+window.addEventListener('load', () => {
+  const screensaver = new DVDScreensaver();
+  
+  document.getElementById('bounceWidth').value = window.innerWidth;
+  document.getElementById('bounceHeight').value = window.innerHeight;
+  
+  screensaver.updateInputs();
+});
+
+window.addEventListener('resize', () => {
+  const screensaver = new DVDScreensaver();
+});
+</script>
+
+</body>
+</html>
