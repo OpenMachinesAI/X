@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="background-color" content="#000000" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="AirOS" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>AirOS - Airo Robot Eyes</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    :root {
+      --look-x: 0px;
+      --look-y: 0px;
+      --eye-scale: 1;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      min-height: 100dvh;
+      background: #000;
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+
+    body {
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: system-ui, sans-serif;
+      cursor: pointer;
+      user-select: none;
+      touch-action: manipulation;
+    }
+
+    .airos {
+      position: relative;
+      width: min(72vw, 620px);
+      height: min(32vw, 260px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(34px, 8vw, 92px);
+    }
+
+    .eye-wrap {
+      position: relative;
+      width: clamp(105px, 22vw, 190px);
+      height: clamp(105px, 22vw, 190px);
+      display: grid;
+      place-items: center;
+      animation: idleFloat 3.4s ease-in-out infinite;
+    }
+
+    .right {
+      animation-delay: -1.15s;
+    }
+
+    .eye-wrap::before {
+      content: "";
+      position: absolute;
+      inset: -23px;
+      border-radius: 50%;
+      background: conic-gradient(
+        from 0deg,
+        #ff004c,
+        #ff8a00,
+        #fff700,
+        #00ff85,
+        #00c8ff,
+        #7a5cff,
+        #ff00e6,
+        #ff004c
+      );
+      opacity: 0;
+      filter: blur(30px);
+      transform: scale(0.82);
+      transition: opacity 0.75s ease, transform 0.75s ease;
+      animation: rainbowSpin 1.6s linear infinite;
+      z-index: 0;
+    }
+
+    .eye {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow:
+        0 0 18px rgba(255, 255, 255, 0.9),
+        0 0 42px rgba(255, 255, 255, 0.35);
+      transform: translate3d(var(--look-x), var(--look-y), 0) scale(var(--eye-scale));
+      transition:
+        transform 1.45s cubic-bezier(0.16, 1, 0.3, 1),
+        background 0.65s ease,
+        box-shadow 0.65s ease,
+        border-radius 0.65s ease;
+      will-change: transform;
+    }
+
+    .eye::after {
+      content: "";
+      position: absolute;
+      top: 22%;
+      left: 25%;
+      width: 25%;
+      height: 25%;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.75);
+      filter: blur(2px);
+      opacity: 0.55;
+      mix-blend-mode: screen;
+    }
+
+    .airos::after {
+      content: "AirOS";
+      position: absolute;
+      bottom: -52px;
+      color: rgba(255, 255, 255, 0.28);
+      letter-spacing: 0.32em;
+      font-size: clamp(13px, 2vw, 18px);
+      text-transform: uppercase;
+      opacity: 0.7;
+      transition: opacity 0.55s ease, color 0.55s ease, text-shadow 0.55s ease;
+    }
+
+    body.listening .eye-wrap::before {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+
+    body.listening .eye {
+      background: linear-gradient(135deg, #ffffff, #dff7ff, #ffffff);
+      box-shadow:
+        0 0 24px rgba(255, 255, 255, 1),
+        0 0 58px rgba(0, 217, 255, 0.65),
+        0 0 92px rgba(255, 0, 230, 0.45);
+      animation: softListeningPulse 1.9s ease-in-out infinite;
+    }
+
+    body.listening .airos::after {
+      content: "AirOS listening";
+      color: rgba(255, 255, 255, 0.78);
+      opacity: 1;
+      text-shadow:
+        0 0 12px rgba(0, 200, 255, 0.9),
+        0 0 24px rgba(255, 0, 230, 0.55);
+    }
+
+    .blink {
+      animation: blink 0.24s ease-in-out !important;
+    }
+
+    @keyframes idleFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-7px); }
+    }
+
+    @keyframes softListeningPulse {
+      0%, 100% {
+        border-radius: 50%;
+        filter: brightness(1);
+      }
+      50% {
+        border-radius: 48% 52% 51% 49%;
+        filter: brightness(1.08);
+      }
+    }
+
+    @keyframes rainbowSpin {
+      to { rotate: 360deg; }
+    }
+
+    @keyframes blink {
+      0%, 100% {
+        transform: translate3d(var(--look-x), var(--look-y), 0) scale(var(--eye-scale), var(--eye-scale));
+      }
+      50% {
+        transform: translate3d(var(--look-x), var(--look-y), 0) scale(var(--eye-scale), 0.08);
+      }
+    }
+
+    .tap-hint {
+      position: fixed;
+      bottom: max(28px, env(safe-area-inset-bottom));
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255, 255, 255, 0.42);
+      font-size: 14px;
+      letter-spacing: 0.08em;
+      transition: opacity 0.35s ease;
+      pointer-events: none;
+    }
+
+    @media (display-mode: fullscreen), (display-mode: standalone) {
+      .tap-hint {
+        opacity: 0.18;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="airos" aria-label="AirOS robotic eyes">
+    <div class="eye-wrap left">
+      <div class="eye"></div>
+    </div>
+    <div class="eye-wrap right">
+      <div class="eye"></div>
+    </div>
+  </main>
+
+  <div class="tap-hint">Tap to listen</div>
+
+  <script>
+    const body = document.body;
+    const hint = document.querySelector('.tap-hint');
+    const eyes = document.querySelectorAll('.eye');
+
+    let listening = false;
+    let lookTimer = null;
+    let wakeLock = null;
+
+    const looks = [
+      { x: 0, y: 0, scale: 1 },
+      { x: -18, y: -2, scale: 1.035 },
+      { x: 18, y: 2, scale: 1.035 },
+      { x: 0, y: -17, scale: 1.025 },
+      { x: 0, y: 14, scale: 1.025 },
+      { x: -12, y: -11, scale: 1.045 },
+      { x: 13, y: -8, scale: 1.045 },
+      { x: 8, y: 12, scale: 1.03 }
+    ];
+
+    function setLook(x, y, scale = 1) {
+      document.documentElement.style.setProperty('--look-x', `${x}px`);
+      document.documentElement.style.setProperty('--look-y', `${y}px`);
+      document.documentElement.style.setProperty('--eye-scale', scale);
+    }
+
+    function blink() {
+      eyes.forEach(eye => eye.classList.add('blink'));
+      setTimeout(() => eyes.forEach(eye => eye.classList.remove('blink')), 250);
+    }
+
+    function lookAround() {
+      if (!listening) return;
+      const next = looks[Math.floor(Math.random() * looks.length)];
+      setLook(next.x, next.y, next.scale);
+
+      const nextDelay = 1500 + Math.random() * 2100;
+      lookTimer = setTimeout(lookAround, nextDelay);
+    }
+
+    async function enterFullscreen() {
+      if (document.fullscreenElement) return;
+      try {
+        await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+      } catch (error) {
+        // Android PWA installed mode already launches fullscreen from the manifest.
+      }
+    }
+
+    async function requestWakeLock() {
+      if (!('wakeLock' in navigator)) return;
+      if (wakeLock) return;
+
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', () => {
+          wakeLock = null;
+        });
+      } catch (error) {
+        // Some Android browsers block wake lock when battery saver is on or the tab is not active.
+      }
+    }
+
+    async function releaseWakeLock() {
+      if (!wakeLock) return;
+
+      try {
+        await wakeLock.release();
+      } catch (error) {
+        // Wake lock may already be released by the browser.
+      }
+
+      wakeLock = null;
+    }
+
+    function startListening() {
+      listening = true;
+      body.classList.add('listening');
+      hint.textContent = 'Tap to stop listening';
+      clearTimeout(lookTimer);
+      requestWakeLock();
+      lookAround();
+    }
+
+    function stopListening() {
+      listening = false;
+      body.classList.remove('listening');
+      hint.textContent = 'Tap to listen';
+      clearTimeout(lookTimer);
+      releaseWakeLock();
+      setLook(0, 0, 1);
+    }
+
+    function toggleListening() {
+      enterFullscreen();
+      if (listening) {
+        stopListening();
+      } else {
+        startListening();
+      }
+    }
+
+    document.addEventListener('pointerdown', toggleListening);
+    document.addEventListener('keydown', event => {
+      if (event.code === 'Space' || event.code === 'Enter') toggleListening();
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && listening) {
+        requestWakeLock();
+      }
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+      if (listening) requestWakeLock();
+    });
+
+    setInterval(() => {
+      if (listening && Math.random() > 0.45) blink();
+    }, 2600);
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
