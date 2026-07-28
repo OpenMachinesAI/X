@@ -1,117 +1,167 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ANT</title>
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            height: 100%;
-            overflow: hidden;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TESLER Button</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
-        .video-background {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            z-index: -1;
-        }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #101010;
+      font-family: Arial, Helvetica, sans-serif;
+      overflow: hidden;
+    }
 
-        #bg-video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
+    .stage {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      align-content: center;
+      gap: 28px;
+      padding: 24px;
+    }
 
-        .content {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            text-align: center;
-            height: 100%;
-            padding: 20px;
-        }
+    .counter {
+      color: white;
+      font-size: clamp(24px, 5vw, 44px);
+      font-weight: 800;
+      text-align: center;
+      text-shadow: 0 3px 10px rgba(0, 0, 0, 0.65);
+    }
 
-        .main-text h1 {
-            font-size: 24px;
-            color: black;
-        }
+    .tesler-button {
+      width: min(72vw, 520px);
+      aspect-ratio: 2.6 / 1;
+      border: 8px solid #7a0000;
+      border-radius: 24px;
+      background: #e60000;
+      color: white;
+      cursor: pointer;
+      font-size: clamp(44px, 12vw, 112px);
+      font-weight: 900;
+      letter-spacing: 0;
+      line-height: 1;
+      text-shadow: 0 5px 0 #8b0000;
+      box-shadow:
+        0 18px 0 #7a0000,
+        0 30px 40px rgba(0, 0, 0, 0.55);
+      transition: transform 80ms ease, box-shadow 80ms ease, filter 120ms ease;
+    }
 
-        .main-text h2 {
-            font-size: 48px;
-            margin: 10px 0;
-        }
+    .tesler-button:hover {
+      filter: brightness(1.08);
+    }
 
-        .main-text p {
-            font-size: 18px;
-            margin: 20px 0;
-        }
+    .tesler-button:active {
+      transform: translateY(14px);
+      box-shadow:
+        0 4px 0 #7a0000,
+        0 18px 28px rgba(0, 0, 0, 0.48);
+    }
 
-        button {
-            padding: 10px 20px;
-            border: none;
-            background-color: #fff;
-            color: #333;
-            font-size: 16px;
-            cursor: pointer;
-            margin-right: 10px;
-        }
+    .flash {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: red;
+      opacity: 0;
+    }
 
-        a {
-            color: black;
-            text-decoration: none;
-            font-size: 16px;
-        }
+    .flash.active {
+      animation: red-flash 420ms ease-out;
+    }
 
-        .cards {
-            display: flex;
-            margin-top: 40px;
-        }
+    .flash-image {
+      position: fixed;
+      inset: 50% auto auto 50%;
+      width: min(88vw, 760px);
+      aspect-ratio: 3 / 2;
+      object-fit: cover;
+      border: 8px solid white;
+      box-shadow: 0 26px 60px rgba(0, 0, 0, 0.7);
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, -50%) scale(0.92);
+    }
 
-        .card {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            margin: 0 15px;
-            padding: 15px;
-            text-align: center;
-        }
+    .flash-image.active {
+      animation: image-pop 500ms ease-out;
+    }
 
-        .card img {
-            max-width: 100%;
-            border-radius: 10px;
-        }
+    @keyframes red-flash {
+      0% {
+        opacity: 0.95;
+      }
 
-        .card p {
-            margin-top: 10px;
-            color: white;
-        }
-    </style>
+      100% {
+        opacity: 0;
+      }
+    }
+
+    @keyframes image-pop {
+      0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(0.92);
+      }
+
+      76% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1.04);
+      }
+    }
+  </style>
 </head>
 <body>
-    <div class="video-background">
-        <video autoplay muted loop id="bg-video">
-            <source src="https://openmachinesai.github.io/X/vecteezy_color-gradient-moving-background-on-screen_7823161.mp4" type="video/mp4">
-            Your browser does not support the video tag.
-        </video>
-    </div>
+  <main class="stage">
+    <div id="counter" class="counter">Clicks: 0</div>
+    <button id="teslerButton" class="tesler-button" type="button">TESLER</button>
+  </main>
 
-    <div class="content">
-        <div class="main-text">
-            <h4>Early Free Preview</h4>
-            <h2>ANT-Video</h2>
-            <p>A prototype of new live video/audio functions powered by ANT-1e and Gemini-1.5 (Coming to AiRParrot).</p>
+  <div id="flash" class="flash" aria-hidden="true"></div>
+  <img
+    id="flashImage"
+    class="flash-image"
+    src="https://media.wired.com/photos/67d1b556d38aff896fec27be/3:2/w_2560%2Cc_limit/trump-tesla-gear-2204588044.jpg"
+    alt=""
+    aria-hidden="true"
+  >
 
-            <a href="ant.html">Try Now</a>
-        </div>
+  <audio id="teslerSound" preload="auto">
+    <source src="https://www.myinstants.com/media/sounds/trump-i-love-tesler_5FwwWs1.mp3" type="audio/mpeg">
+  </audio>
 
-       
+  <script>
+    const button = document.querySelector("#teslerButton");
+    const sound = document.querySelector("#teslerSound");
+    const flash = document.querySelector("#flash");
+    const flashImage = document.querySelector("#flashImage");
+    const counter = document.querySelector("#counter");
+    let clicks = 0;
+
+    button.addEventListener("click", () => {
+      clicks += 1;
+      counter.textContent = `Clicks: ${clicks}`;
+
+      sound.currentTime = 0;
+      sound.play();
+
+      flash.classList.remove("active");
+      flashImage.classList.remove("active");
+      void flash.offsetWidth;
+      void flashImage.offsetWidth;
+      flash.classList.add("active");
+      flashImage.classList.add("active");
+    });
+  </script>
 </body>
 </html>
