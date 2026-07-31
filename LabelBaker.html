@@ -224,6 +224,7 @@
       background: white;
       transition: background 0.2s, box-shadow 0.2s;
       box-sizing: border-box;
+      overflow: hidden;
     }
 
     .label.draggable {
@@ -241,8 +242,8 @@
     }
 
     .label-logo {
-      height: 0.42in;
-      margin-bottom: 0.14in;
+      height: 0.55in;
+      margin-bottom: 0.16in;
       flex-shrink: 0;
     }
 
@@ -253,13 +254,13 @@
     }
 
     .label-name {
-      font-size: 40px;
+      font-size: 50px;
       font-weight: 700;
       color: #111;
       margin: 0;
       line-height: 1.1;
       word-wrap: break-word;
-      max-width: 3.4in;
+      max-width: 3.6in;
       outline: none;
       border-radius: 3px;
       padding: 0 0.1in;
@@ -606,6 +607,46 @@
       .replace(/"/g, '&quot;');
   }
 
+  const NAME_MAX_FONT = 50;
+  const NAME_MIN_FONT = 14;
+
+  // A long name must never stretch the fixed 4"x2" label — that breaks
+  // alignment on the physical sheet. Instead, shrink the font until the
+  // rendered text actually fits the space left after the logo.
+  function fitLabelName(nameEl) {
+    const container = nameEl.closest('.label');
+    if (!container) return;
+
+    const logoEl = container.querySelector('.label-logo');
+    const containerStyle = getComputedStyle(container);
+    const paddingV = parseFloat(containerStyle.paddingTop) + parseFloat(containerStyle.paddingBottom);
+    const paddingH = parseFloat(containerStyle.paddingLeft) + parseFloat(containerStyle.paddingRight);
+
+    let logoSpace = 0;
+    if (logoEl) {
+      const logoStyle = getComputedStyle(logoEl);
+      logoSpace = logoEl.offsetHeight + parseFloat(logoStyle.marginBottom);
+    }
+
+    const availableHeight = container.clientHeight - paddingV - logoSpace;
+    const availableWidth = container.clientWidth - paddingH;
+
+    let fontSize = NAME_MAX_FONT;
+    nameEl.style.fontSize = fontSize + 'px';
+
+    while (
+      fontSize > NAME_MIN_FONT &&
+      (nameEl.scrollHeight > availableHeight || nameEl.scrollWidth > availableWidth)
+    ) {
+      fontSize -= 1;
+      nameEl.style.fontSize = fontSize + 'px';
+    }
+  }
+
+  function fitAllLabelNames() {
+    document.querySelectorAll('.label-name').forEach(fitLabelName);
+  }
+
   function renderLabels() {
     const hasContent = labels.some(v => v);
     if (!hasContent) {
@@ -673,6 +714,10 @@
   }
 
   function triggerPrint() {
+    // Re-check text fit right before printing too, in case box metrics
+    // shift slightly between screen and print layout.
+    fitAllLabelNames();
+
     // Ensure all images are loaded before printing
     const images = document.querySelectorAll('img');
     let loadedCount = 0;
@@ -785,6 +830,7 @@
       if (e.target.classList.contains('label-name')) {
         const idx = parseInt(e.target.dataset.index);
         labels[idx] = e.target.textContent;
+        fitLabelName(e.target);
       }
     });
   }
@@ -792,6 +838,7 @@
   function render() {
     const output = document.getElementById('output');
     output.innerHTML = renderLabels();
+    fitAllLabelNames();
     updateTopbar();
   }
 
