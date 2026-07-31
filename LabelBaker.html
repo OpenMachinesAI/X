@@ -24,13 +24,178 @@
       color: var(--ink);
       padding: 0;
       margin: 0;
+      display: flex;
+      height: 100vh;
+      flex-direction: column;
+    }
+
+    .main-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: 280px;
+      background: white;
+      border-right: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      background: #f8fafc;
+    }
+
+    .sidebar-header h2 {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin: 0 0 12px;
+    }
+
+    .add-name-form {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .add-name-form input {
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .add-name-form input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(40, 119, 216, 0.1);
+    }
+
+    .add-name-form button {
+      padding: 8px 12px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .add-name-form button:hover {
+      background: #1d5eb0;
+    }
+
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .names-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .name-item {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 13px;
+      transition: background 0.2s;
+    }
+
+    .name-item:hover {
+      background: #f0f3f8;
+    }
+
+    .name-item-text {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .name-item-delete {
+      background: #fee;
+      color: #c33;
+      border: none;
+      border-radius: 3px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+
+    .name-item-delete:hover {
+      background: #fdd;
+    }
+
+    .sidebar-footer {
+      padding: 12px;
+      border-top: 1px solid var(--line);
+      background: #f8fafc;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .sidebar-footer button {
+      width: 100%;
+      padding: 8px;
+      background: #e8f0f8;
+      color: var(--accent);
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-bottom: 8px;
+    }
+
+    .sidebar-footer button:hover {
+      background: #dfe8f4;
+    }
+
+    .content-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .preview-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
     }
 
     .page {
       width: 8.5in;
       height: 11in;
       background: white;
-      margin: 20px auto;
+      margin: 0 auto 20px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -39,6 +204,10 @@
       padding: 0;
       page-break-after: always;
       position: relative;
+    }
+
+    .page:last-child {
+      margin-bottom: 20px;
     }
 
     .label {
@@ -207,14 +376,29 @@
       body {
         background: white;
         padding: 0;
+        display: block;
+        height: auto;
+      }
+      .main-container {
+        display: block;
+        overflow: visible;
+      }
+      .sidebar, .topbar, .empty-message, .preview-area {
+        display: none !important;
+      }
+      .content-area {
+        position: static;
+        overflow: visible;
       }
       .page {
         margin: 0;
         box-shadow: none;
         page-break-after: always;
+        width: 8.5in;
+        height: 11in;
       }
-      .topbar, .empty-message {
-        display: none !important;
+      .page:last-child {
+        margin-bottom: 0;
       }
       .label {
         break-inside: avoid;
@@ -232,7 +416,30 @@
   </div>
 </div>
 
-<main id="output"></main>
+<div class="main-container">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h2>Names</h2>
+      <form class="add-name-form" id="addNameForm">
+        <input type="text" id="nameInput" placeholder="Enter name..." autocomplete="off">
+        <button type="submit">Add Name</button>
+      </form>
+    </div>
+    <div class="sidebar-content">
+      <div class="names-list" id="namesList"></div>
+    </div>
+    <div class="sidebar-footer">
+      <button id="clearAllBtn">Clear All</button>
+      <div id="countDisplay"></div>
+    </div>
+  </aside>
+
+  <div class="content-area">
+    <div class="preview-area" id="previewArea">
+      <main id="output"></main>
+    </div>
+  </div>
+</div>
 
 <script>
   const logoSrc = 'assets/mzt/milezerotours-wordmark-transparent.png';
@@ -254,6 +461,57 @@
     }
 
     return names;
+  }
+
+  function addName(name) {
+    const trimmed = name.trim();
+    if (trimmed) {
+      labels.push(trimmed);
+      render();
+      updateNamesList();
+      document.getElementById('nameInput').value = '';
+      document.getElementById('nameInput').focus();
+    }
+  }
+
+  function removeName(index) {
+    labels.splice(index, 1);
+    render();
+    updateNamesList();
+  }
+
+  function clearAllNames() {
+    if (labels.length > 0 && confirm(`Remove all ${labels.length} name${labels.length !== 1 ? 's' : ''}?`)) {
+      labels = [];
+      render();
+      updateNamesList();
+    }
+  }
+
+  function updateNamesList() {
+    const namesList = document.getElementById('namesList');
+    const countDisplay = document.getElementById('countDisplay');
+
+    if (labels.length === 0) {
+      namesList.innerHTML = '<div style="color: var(--muted); font-size: 12px; text-align: center; padding: 20px 10px;">No names added yet</div>';
+      countDisplay.textContent = '';
+    } else {
+      namesList.innerHTML = labels.map((name, idx) => `
+        <div class="name-item">
+          <span class="name-item-text">${escapeHtml(name)}</span>
+          <button class="name-item-delete" data-index="${idx}">Delete</button>
+        </div>
+      `).join('');
+
+      countDisplay.textContent = `${labels.length} label${labels.length !== 1 ? 's' : ''}`;
+
+      // Add delete listeners
+      document.querySelectorAll('.name-item-delete').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          removeName(parseInt(e.target.dataset.index));
+        });
+      });
+    }
   }
 
   function escapeHtml(str) {
@@ -415,7 +673,19 @@
 
   function init() {
     labels = getUrlParams();
+
+    // Add form listener
+    document.getElementById('addNameForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      addName(document.getElementById('nameInput').value);
+    });
+
+    // Clear all button
+    document.getElementById('clearAllBtn').addEventListener('click', clearAllNames);
+
+    // Initial render
     render();
+    updateNamesList();
   }
 
   document.addEventListener('DOMContentLoaded', init);
