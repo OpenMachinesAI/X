@@ -276,15 +276,6 @@
       outline: 2px solid var(--accent);
     }
 
-    .label-number {
-      position: absolute;
-      bottom: 0.1in;
-      left: 0.15in;
-      font-size: 13px;
-      color: #111;
-      font-weight: 700;
-      pointer-events: none;
-    }
 
     .empty-message {
       text-align: center;
@@ -676,13 +667,11 @@
       const endIdx = Math.min(startIdx + labelsPerPage, labels.length);
 
       for (let i = startIdx; i < endIdx; i++) {
-        const labelIndex = i + 1;
         const label = labels[i];
 
         if (label) {
           html += `
             <div class="label ${editMode ? 'draggable' : ''}" data-index="${i}" draggable="${editMode}">
-              <div class="label-number">${labelIndex}</div>
               <div class="label-logo">
                 <img src="${logoSrc}" alt="Mile Zero Tours">
               </div>
