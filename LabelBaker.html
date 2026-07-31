@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Label Baker — MileZero Tours</title>
+  <style>
+    :root {
+      --ink: #1a2032;
+      --accent: #2877d8;
+      --muted: #6b7585;
+      --line: #d4dae6;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      background: #f0f3f8;
+      color: var(--ink);
+      padding: 0;
+      margin: 0;
+    }
+
+    .page {
+      width: 8.5in;
+      height: 11in;
+      background: white;
+      margin: 20px auto;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(5, 1fr);
+      gap: 0;
+      padding: 0;
+      page-break-after: always;
+      position: relative;
+    }
+
+    .label {
+      width: 4in;
+      height: 2in;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      border: 0.5px solid #e0e0e0;
+      padding: 0.25in;
+      position: relative;
+      background: white;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+
+    .label.draggable {
+      cursor: move;
+    }
+
+    .label.dragging {
+      opacity: 0.5;
+      background: #f9f9f9;
+    }
+
+    .label.drag-over {
+      background: #f0f3f8;
+      box-shadow: inset 0 0 8px rgba(40, 119, 216, 0.3);
+    }
+
+    .label-logo {
+      height: 0.5in;
+      margin-bottom: 0.15in;
+    }
+
+    .label-logo img {
+      height: 100%;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .label-name {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0;
+      line-height: 1.2;
+      word-wrap: break-word;
+      max-width: 3.5in;
+      outline: none;
+      border-radius: 3px;
+      padding: 4px 8px;
+      transition: background 0.2s;
+    }
+
+    .label-name:hover {
+      background: #f5f5f5;
+    }
+
+    .label-name:focus {
+      background: #e3f2fd;
+      outline: 2px solid var(--accent);
+    }
+
+    .label-number {
+      position: absolute;
+      top: 0.1in;
+      right: 0.15in;
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .empty-message {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+    }
+
+    .empty-message h1 {
+      font-size: 28px;
+      margin-bottom: 12px;
+      color: var(--ink);
+    }
+
+    .empty-message p {
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .example-code {
+      background: #f5f7fa;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #2c3e50;
+      text-align: left;
+      margin-bottom: 12px;
+      overflow-x: auto;
+    }
+
+    .topbar {
+      background: var(--ink);
+      color: white;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 600;
+      gap: 20px;
+    }
+
+    .topbar-left {
+      flex: 1;
+    }
+
+    .topbar-right {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn-print {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 5px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-print:hover {
+      background: #1d5eb0;
+    }
+
+    .edit-mode-toggle {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 5px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .edit-mode-toggle:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .edit-mode-toggle.active {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+      .page {
+        margin: 0;
+        box-shadow: none;
+        page-break-after: always;
+      }
+      .topbar, .empty-message {
+        display: none !important;
+      }
+      .label {
+        break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar" id="topbar">
+  <div class="topbar-left" id="topbarText"></div>
+  <div class="topbar-right">
+    <button class="edit-mode-toggle" id="editModeToggle">Edit Mode</button>
+    <button class="btn-print" id="printBtn">Print / PDF</button>
+  </div>
+</div>
+
+<main id="output"></main>
+
+<script>
+  const logoSrc = 'assets/mzt/milezerotours-wordmark-transparent.png';
+  const labelsPerPage = 10;
+
+  let labels = [];
+  let editMode = false;
+  let draggedLabel = null;
+
+  function getUrlParams() {
+    const params = new URLSearchParams(window.location.search + window.location.hash.replace(/^#/, '?'));
+    const names = [];
+
+    let index = 1;
+    while (params.has(`name${index}`)) {
+      const name = params.get(`name${index}`).trim();
+      if (name) names.push(name);
+      index++;
+    }
+
+    return names;
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function renderLabels() {
+    if (labels.length === 0) {
+      return `
+        <div class="empty-message">
+          <h1>Welcome to Label Baker</h1>
+          <p>Create printable name tags using the URL parameters below.</p>
+          <p style="font-weight: 600; margin-top: 20px;">Example:</p>
+          <div class="example-code">
+            LabelBaker.html?name1=David&name2=Alex&name3=Jordan
+          </div>
+          <p style="margin-top: 20px;">Parameters: <strong>name1</strong>, <strong>name2</strong>, <strong>name3</strong>, etc.</p>
+          <p style="font-size: 12px; color: var(--muted);">
+            Supports up to any number of names. Automatically creates 10 labels per 8.5" × 11" sheet.
+          </p>
+        </div>
+      `;
+    }
+
+    let html = '';
+    const totalPages = Math.ceil(labels.length / labelsPerPage);
+
+    for (let pageNum = 0; pageNum < totalPages; pageNum++) {
+      html += '<div class="page">';
+
+      const startIdx = pageNum * labelsPerPage;
+      const endIdx = Math.min(startIdx + labelsPerPage, labels.length);
+
+      for (let i = startIdx; i < endIdx; i++) {
+        const labelIndex = i + 1;
+        const label = labels[i];
+        html += `
+          <div class="label ${editMode ? 'draggable' : ''}" data-index="${i}" draggable="${editMode}">
+            <div class="label-number">${labelIndex}</div>
+            <div class="label-logo">
+              <img src="${logoSrc}" alt="Mile Zero Tours">
+            </div>
+            <div class="label-name" contenteditable="${editMode}" data-index="${i}">${escapeHtml(label)}</div>
+          </div>
+        `;
+      }
+
+      // Fill remaining slots with empty labels
+      const emptySlots = labelsPerPage - (endIdx - startIdx);
+      for (let i = 0; i < emptySlots; i++) {
+        html += '<div class="label" style="border-color: #f5f5f5;"></div>';
+      }
+
+      html += '</div>';
+    }
+
+    return html;
+  }
+
+  function updateTopbar() {
+    const topbarText = document.getElementById('topbarText');
+    if (labels.length > 0) {
+      topbarText.textContent = `${labels.length} label${labels.length !== 1 ? 's' : ''} ready to print`;
+    } else {
+      topbarText.textContent = '';
+    }
+  }
+
+  function attachEventListeners() {
+    const output = document.getElementById('output');
+
+    // Print button
+    document.getElementById('printBtn').addEventListener('click', () => {
+      window.print();
+    });
+
+    // Edit mode toggle
+    const editBtn = document.getElementById('editModeToggle');
+    editBtn.addEventListener('click', () => {
+      editMode = !editMode;
+      editBtn.classList.toggle('active');
+      render();
+    });
+
+    // Drag and drop listeners
+    output.addEventListener('dragstart', (e) => {
+      if (!e.target.classList.contains('label') || !editMode) return;
+      draggedLabel = e.target;
+      e.target.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    output.addEventListener('dragend', (e) => {
+      if (!e.target.classList.contains('label')) return;
+      e.target.classList.remove('dragging');
+      document.querySelectorAll('.label.drag-over').forEach(el => {
+        el.classList.remove('drag-over');
+      });
+    });
+
+    output.addEventListener('dragover', (e) => {
+      if (!editMode) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const target = e.target.closest('.label');
+      if (target && target !== draggedLabel && target.dataset.index !== undefined) {
+        target.classList.add('drag-over');
+      }
+    });
+
+    output.addEventListener('dragleave', (e) => {
+      const target = e.target.closest('.label');
+      if (target) target.classList.remove('drag-over');
+    });
+
+    output.addEventListener('drop', (e) => {
+      if (!editMode || !draggedLabel) return;
+      e.preventDefault();
+      const target = e.target.closest('.label');
+      if (target && target !== draggedLabel && target.dataset.index !== undefined) {
+        const fromIdx = parseInt(draggedLabel.dataset.index);
+        const toIdx = parseInt(target.dataset.index);
+
+        // Swap labels
+        const temp = labels[fromIdx];
+        labels[fromIdx] = labels[toIdx];
+        labels[toIdx] = temp;
+
+        render();
+      }
+    });
+
+    // Name editing
+    output.addEventListener('input', (e) => {
+      if (e.target.classList.contains('label-name')) {
+        const idx = parseInt(e.target.dataset.index);
+        labels[idx] = e.target.textContent;
+      }
+    });
+
+    // Prevent drag of images
+    output.addEventListener('dragstart', (e) => {
+      if (e.target.tagName === 'IMG') {
+        e.preventDefault();
+      }
+    });
+  }
+
+  function render() {
+    const output = document.getElementById('output');
+    output.innerHTML = renderLabels();
+    updateTopbar();
+    attachEventListeners();
+  }
+
+  function init() {
+    labels = getUrlParams();
+    render();
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>
