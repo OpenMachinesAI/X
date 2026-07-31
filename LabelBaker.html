@@ -211,18 +211,19 @@
     }
 
     .label {
-      width: 4in;
-      height: 2in;
+      width: 100%;
+      height: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       text-align: center;
-      border: 0.5px solid #e0e0e0;
-      padding: 0.25in;
+      border: none;
+      padding: 0.12in 0.2in;
       position: relative;
       background: white;
       transition: background 0.2s, box-shadow 0.2s;
+      box-sizing: border-box;
     }
 
     .label.draggable {
@@ -240,8 +241,9 @@
     }
 
     .label-logo {
-      height: 0.5in;
-      margin-bottom: 0.15in;
+      height: 0.42in;
+      margin-bottom: 0.14in;
+      flex-shrink: 0;
     }
 
     .label-logo img {
@@ -251,16 +253,16 @@
     }
 
     .label-name {
-      font-size: 24px;
-      font-weight: 600;
-      color: var(--ink);
+      font-size: 40px;
+      font-weight: 700;
+      color: #111;
       margin: 0;
-      line-height: 1.2;
+      line-height: 1.1;
       word-wrap: break-word;
-      max-width: 3.5in;
+      max-width: 3.4in;
       outline: none;
       border-radius: 3px;
-      padding: 4px 8px;
+      padding: 0 0.1in;
       transition: background 0.2s;
     }
 
@@ -275,11 +277,12 @@
 
     .label-number {
       position: absolute;
-      top: 0.1in;
-      right: 0.15in;
-      font-size: 11px;
-      color: var(--muted);
-      font-weight: 500;
+      bottom: 0.1in;
+      left: 0.15in;
+      font-size: 13px;
+      color: #111;
+      font-weight: 700;
+      pointer-events: none;
     }
 
     .empty-message {
@@ -373,35 +376,78 @@
     }
 
     @media print {
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+
       body {
         background: white;
         padding: 0;
         display: block;
         height: auto;
+        margin: 0;
       }
+
       .main-container {
         display: block;
         overflow: visible;
+        width: 100%;
       }
-      .sidebar, .topbar, .empty-message, .preview-area {
+
+      .sidebar, .topbar, .empty-message {
         display: none !important;
       }
+
       .content-area {
         position: static;
         overflow: visible;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        display: block;
       }
+
+      .preview-area {
+        position: static;
+        overflow: visible;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      #output {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        display: block;
+      }
+
       .page {
         margin: 0;
         box-shadow: none;
         page-break-after: always;
+        page-break-inside: avoid;
         width: 8.5in;
         height: 11in;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(5, 1fr);
+        gap: 0;
+        padding: 0;
+        border: none;
+        background: white;
       }
+
       .page:last-child {
-        margin-bottom: 0;
+        page-break-after: auto;
       }
+
       .label {
-        break-inside: avoid;
+        page-break-inside: avoid;
+        border: none;
+        overflow: visible;
       }
     }
   </style>
@@ -463,10 +509,45 @@
     return names;
   }
 
+  // labels[] represents fixed grid slots — '' means the slot is blank.
+  // Keeping blanks as real array entries (rather than just visual filler)
+  // is what lets drag-and-drop swap a name into ANY slot, filled or not,
+  // instead of shifting/reordering everything else.
+  function padLabels() {
+    if (labels.length === 0) return;
+    const remainder = labels.length % labelsPerPage;
+    if (remainder !== 0) {
+      labels.push(...Array(labelsPerPage - remainder).fill(''));
+    }
+  }
+
+  function trimTrailingEmptySlots() {
+    while (labels.length >= labelsPerPage) {
+      const lastPage = labels.slice(labels.length - labelsPerPage);
+      if (lastPage.every(v => !v)) {
+        labels.splice(labels.length - labelsPerPage, labelsPerPage);
+      } else {
+        break;
+      }
+    }
+    if (labels.every(v => !v)) labels.length = 0;
+  }
+
+  function normalizeLabels() {
+    trimTrailingEmptySlots();
+    padLabels();
+  }
+
   function addName(name) {
     const trimmed = name.trim();
     if (trimmed) {
-      labels.push(trimmed);
+      const emptyIdx = labels.findIndex(v => !v);
+      if (emptyIdx !== -1) {
+        labels[emptyIdx] = trimmed;
+      } else {
+        labels.push(trimmed);
+      }
+      normalizeLabels();
       render();
       updateNamesList();
       document.getElementById('nameInput').value = '';
@@ -475,13 +556,15 @@
   }
 
   function removeName(index) {
-    labels.splice(index, 1);
+    labels[index] = '';
+    normalizeLabels();
     render();
     updateNamesList();
   }
 
   function clearAllNames() {
-    if (labels.length > 0 && confirm(`Remove all ${labels.length} name${labels.length !== 1 ? 's' : ''}?`)) {
+    const filledCount = labels.filter(v => v).length;
+    if (filledCount > 0 && confirm(`Remove all ${filledCount} name${filledCount !== 1 ? 's' : ''}?`)) {
       labels = [];
       render();
       updateNamesList();
@@ -491,19 +574,20 @@
   function updateNamesList() {
     const namesList = document.getElementById('namesList');
     const countDisplay = document.getElementById('countDisplay');
+    const filled = labels.map((name, idx) => ({ name, idx })).filter(item => item.name);
 
-    if (labels.length === 0) {
+    if (filled.length === 0) {
       namesList.innerHTML = '<div style="color: var(--muted); font-size: 12px; text-align: center; padding: 20px 10px;">No names added yet</div>';
       countDisplay.textContent = '';
     } else {
-      namesList.innerHTML = labels.map((name, idx) => `
+      namesList.innerHTML = filled.map(item => `
         <div class="name-item">
-          <span class="name-item-text">${escapeHtml(name)}</span>
-          <button class="name-item-delete" data-index="${idx}">Delete</button>
+          <span class="name-item-text">${escapeHtml(item.name)}</span>
+          <button class="name-item-delete" data-index="${item.idx}">Delete</button>
         </div>
       `).join('');
 
-      countDisplay.textContent = `${labels.length} label${labels.length !== 1 ? 's' : ''}`;
+      countDisplay.textContent = `${filled.length} label${filled.length !== 1 ? 's' : ''}`;
 
       // Add delete listeners
       document.querySelectorAll('.name-item-delete').forEach(btn => {
@@ -523,7 +607,8 @@
   }
 
   function renderLabels() {
-    if (labels.length === 0) {
+    const hasContent = labels.some(v => v);
+    if (!hasContent) {
       return `
         <div class="empty-message">
           <h1>Welcome to Label Baker</h1>
@@ -552,21 +637,23 @@
       for (let i = startIdx; i < endIdx; i++) {
         const labelIndex = i + 1;
         const label = labels[i];
-        html += `
-          <div class="label ${editMode ? 'draggable' : ''}" data-index="${i}" draggable="${editMode}">
-            <div class="label-number">${labelIndex}</div>
-            <div class="label-logo">
-              <img src="${logoSrc}" alt="Mile Zero Tours">
-            </div>
-            <div class="label-name" contenteditable="${editMode}" data-index="${i}">${escapeHtml(label)}</div>
-          </div>
-        `;
-      }
 
-      // Fill remaining slots with empty labels
-      const emptySlots = labelsPerPage - (endIdx - startIdx);
-      for (let i = 0; i < emptySlots; i++) {
-        html += '<div class="label" style="border-color: #f5f5f5;"></div>';
+        if (label) {
+          html += `
+            <div class="label ${editMode ? 'draggable' : ''}" data-index="${i}" draggable="${editMode}">
+              <div class="label-number">${labelIndex}</div>
+              <div class="label-logo">
+                <img src="${logoSrc}" alt="Mile Zero Tours">
+              </div>
+              <div class="label-name" contenteditable="${editMode}" data-index="${i}">${escapeHtml(label)}</div>
+            </div>
+          `;
+        } else {
+          // Blank slot — still a real, addressable position in labels[],
+          // so dragging a name onto it places it exactly here (via drop
+          // handler's swap), not just appended past the end of the list.
+          html += `<div class="label" data-index="${i}" data-empty="true" style="border-color: #f5f5f5;"></div>`;
+        }
       }
 
       html += '</div>';
@@ -577,20 +664,57 @@
 
   function updateTopbar() {
     const topbarText = document.getElementById('topbarText');
-    if (labels.length > 0) {
-      topbarText.textContent = `${labels.length} label${labels.length !== 1 ? 's' : ''} ready to print`;
+    const filledCount = labels.filter(v => v).length;
+    if (filledCount > 0) {
+      topbarText.textContent = `${filledCount} label${filledCount !== 1 ? 's' : ''} ready to print`;
     } else {
       topbarText.textContent = '';
     }
   }
 
-  function attachEventListeners() {
+  function triggerPrint() {
+    // Ensure all images are loaded before printing
+    const images = document.querySelectorAll('img');
+    let loadedCount = 0;
+    const totalCount = images.length;
+
+    if (totalCount === 0) {
+      window.print();
+      return;
+    }
+
+    images.forEach(img => {
+      if (img.complete) {
+        loadedCount++;
+      } else {
+        img.addEventListener('load', () => {
+          loadedCount++;
+          if (loadedCount === totalCount) {
+            setTimeout(() => window.print(), 100);
+          }
+        }, { once: true });
+        img.addEventListener('error', () => {
+          loadedCount++;
+          if (loadedCount === totalCount) {
+            setTimeout(() => window.print(), 100);
+          }
+        }, { once: true });
+      }
+    });
+
+    if (loadedCount === totalCount) {
+      setTimeout(() => window.print(), 100);
+    }
+  }
+
+  // Bound once — these elements persist across renders (only #output's
+  // innerHTML changes), so listeners here must not be re-attached on
+  // every render() or they'd stack up and fire multiple times per click.
+  function attachStaticEventListeners() {
     const output = document.getElementById('output');
 
     // Print button
-    document.getElementById('printBtn').addEventListener('click', () => {
-      window.print();
-    });
+    document.getElementById('printBtn').addEventListener('click', triggerPrint);
 
     // Edit mode toggle
     const editBtn = document.getElementById('editModeToggle');
@@ -600,9 +724,13 @@
       render();
     });
 
-    // Drag and drop listeners
+    // Drag and drop listeners (event delegation on the persistent #output)
     output.addEventListener('dragstart', (e) => {
-      if (!e.target.classList.contains('label') || !editMode) return;
+      if (e.target.tagName === 'IMG') {
+        e.preventDefault();
+        return;
+      }
+      if (!e.target.classList.contains('label') || !editMode || e.target.dataset.empty === 'true') return;
       draggedLabel = e.target;
       e.target.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
@@ -639,12 +767,16 @@
         const fromIdx = parseInt(draggedLabel.dataset.index);
         const toIdx = parseInt(target.dataset.index);
 
-        // Swap labels
+        // Direct swap — the dragged label and whatever was at the drop
+        // target (a name, or nothing) trade places exactly, so a label
+        // can be placed on any specific slot on the grid, filled or blank.
         const temp = labels[fromIdx];
         labels[fromIdx] = labels[toIdx];
         labels[toIdx] = temp;
 
+        trimTrailingEmptySlots();
         render();
+        updateNamesList();
       }
     });
 
@@ -655,24 +787,17 @@
         labels[idx] = e.target.textContent;
       }
     });
-
-    // Prevent drag of images
-    output.addEventListener('dragstart', (e) => {
-      if (e.target.tagName === 'IMG') {
-        e.preventDefault();
-      }
-    });
   }
 
   function render() {
     const output = document.getElementById('output');
     output.innerHTML = renderLabels();
     updateTopbar();
-    attachEventListeners();
   }
 
   function init() {
     labels = getUrlParams();
+    padLabels();
 
     // Add form listener
     document.getElementById('addNameForm').addEventListener('submit', (e) => {
@@ -682,6 +807,9 @@
 
     // Clear all button
     document.getElementById('clearAllBtn').addEventListener('click', clearAllNames);
+
+    // Bind persistent listeners once
+    attachStaticEventListeners();
 
     // Initial render
     render();
