@@ -1,10 +1,54 @@
-```
-.d8b.  db      d88888b db    db      d8888b.  .d88b.  .d8888. d88888b 
-d8' `8b 88      88'     `8b  d8'      88  `8D .8P  Y8. 88'  YP 88'     
-88ooo88 88      88ooooo  `8bd8'       88oobY' 88    88 `8bo.   88ooooo 
-88~~~88 88      88~~~~~  .dPYb.       88`8b   88    88   `Y8b. 88~~~~~ 
-88   88 88booo. 88.     .8P  Y8.      88 `88. `8b  d8' db   8D 88.     
-YP   YP Y88888P Y88888P YP    YP      88   YD  `Y88P'  `8888Y' Y88888P
- ```
+# Rapier 3D Rocket Landing Simulator
 
-This is the X-DUMP, I put stuff here                                   
+This is a browser-based classroom simulation.
+
+## Run it
+
+Because the app uses ES modules, serve the folder with a small local web server rather than double-clicking the HTML file.
+
+Python:
+```bash
+python -m http.server 8000
+```
+
+Then open:
+```text
+http://localhost:8000
+```
+
+No npm install is required. The browser loads:
+- Three.js 0.185.1
+- @dimforge/rapier3d-compat 0.20.0
+
+from jsDelivr.
+
+## Physics improvements
+
+- Rapier 3D dynamic rigid body
+- fixed 120 Hz physics timestep
+- Earth gravity (9.80665 m/s²)
+- continuous collision detection
+- capsule collider
+- custom mass/inertia updates as propellant changes
+- quadratic aerodynamic drag using air-relative velocity
+- optional crosswind
+- motor forces applied at their physical mount points using Rapier `addForceAtPoint`
+- 3D orientation and angular velocity
+- automatic simulation-only landing prediction that accounts for current tilt
+- ground collision handled by Rapier
+
+## Motor reference values represented
+
+The UI uses the previously established classroom C6-5 reference values:
+- loaded mass: 24.1 g
+- propellant mass: 12.2 g
+- published duration: 1.60 s
+- published peak thrust: 15.3 N
+- NAR listed tested impulse: 6.93 N·s
+
+The in-app thrust curve is a smooth educational approximation normalized to the listed tested impulse. It is not a sample-for-sample certification trace.
+
+## Safety boundary
+
+The automatic controller exists only inside this browser simulation.
+There are no hardware, radio, serial, GPIO, deployment, or avionics interfaces.

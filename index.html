@@ -1,122 +1,187 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Octoweb Rocket Landing Burn Simulator</title>
-  <link rel="stylesheet" href="styles.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rapier 3D Rocket Landing Simulator</title>
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div>
-      <h1>Octoweb Landing Burn Visualizer</h1>
-      <p>Fake telemetry • simplified physics • visualization only</p>
+<header class="topbar">
+  <div>
+    <h1>Rapier 3D Rocket Landing Simulator</h1>
+    <p>Three.js rendering • Rapier rigid-body dynamics • C6-series classroom model</p>
+  </div>
+  <span class="badge">SIMULATION ONLY</span>
+</header>
+
+<main class="layout">
+  <aside class="panel controls">
+    <h2>Vehicle & environment</h2>
+
+    <label>
+      Dry airframe mass
+      <div class="inputRow"><input id="dryMass" type="number" value="0.18" min="0.05" max="3" step="0.01"><span>kg</span></div>
+    </label>
+
+    <label>
+      Rocket length
+      <div class="inputRow"><input id="rocketLength" type="number" value="0.72" min="0.2" max="2" step="0.01"><span>m</span></div>
+    </label>
+
+    <label>
+      Body diameter
+      <div class="inputRow"><input id="rocketDiameter" type="number" value="0.075" min="0.03" max="0.3" step="0.005"><span>m</span></div>
+    </label>
+
+    <label>
+      Drag coefficient
+      <input id="cd" type="number" value="0.55" min="0.1" max="2" step="0.05">
+    </label>
+
+    <label>
+      Crosswind
+      <div class="inputRow"><input id="wind" type="number" value="0" min="-15" max="15" step="0.5"><span>m/s</span></div>
+    </label>
+
+    <h2>Engine layout</h2>
+
+    <label>
+      Landing engines allowed
+      <select id="landingMode">
+        <option value="1">1 — center</option>
+        <option value="3" selected>3 — center + opposite pair</option>
+      </select>
+    </label>
+
+    <label>
+      Ascent engines
+      <input id="ascentCount" type="range" min="1" max="6" value="6">
+      <span id="ascentLabel">6 of 6 available</span>
+    </label>
+
+    <h2>Descent setup</h2>
+
+    <label>
+      Starting altitude
+      <div class="inputRow"><input id="descentAltitude" type="number" value="120" min="10" max="1000" step="10"><span>m</span></div>
+    </label>
+
+    <label>
+      Initial downward speed
+      <div class="inputRow"><input id="descentSpeed" type="number" value="22" min="1" max="100" step="1"><span>m/s</span></div>
+    </label>
+
+    <label>
+      Initial tilt
+      <div class="inputRow"><input id="tilt" type="number" value="1.5" min="0" max="15" step="0.5"><span>°</span></div>
+    </label>
+
+    <label>
+      Controller reserve
+      <input id="reserve" type="range" min="1.00" max="1.35" step="0.01" value="1.08">
+      <span id="reserveLabel">1.08×</span>
+    </label>
+
+    <div class="buttonGrid">
+      <button id="landingBtn" class="primary">Run auto landing</button>
+      <button id="ascentBtn">Run ascent</button>
+      <button id="resetBtn">Reset</button>
     </div>
-    <div class="badge">SIMULATION ONLY</div>
-  </header>
 
-  <main class="grid">
-    <section class="panel controls">
-      <h2>Simulation Inputs</h2>
+    <div class="warning">
+      The automatic landing controller is confined to this browser simulation.
+      The project contains no GPIO, radio, serial, deployment, or avionics interfaces.
+    </div>
+  </aside>
 
-      <label>
-        Empty rocket mass (kg)
-        <input id="massInput" type="number" min="0.1" step="0.1" value="2.5" />
-      </label>
-
-      <label>
-        Starting descent altitude (m)
-        <input id="altitudeInput" type="number" min="10" step="10" value="180" />
-      </label>
-
-      <label>
-        Starting descent speed (m/s)
-        <input id="speedInput" type="number" min="1" step="1" value="28" />
-      </label>
-
-      <label>
-        Ascent engines selected
-        <input id="ascentCount" type="range" min="1" max="8" value="8" />
-        <span id="ascentCountLabel">8</span>
-      </label>
-
-      <label>
-        Descent engines selected
-        <input id="descentCount" type="range" min="0" max="1" value="1" />
-        <span id="descentCountLabel">1</span>
-      </label>
-
-      <div class="buttons">
-        <button id="resetBtn">Reset</button>
-        <button id="runBtn" class="primary">Run Descent</button>
+  <section class="panel scenePanel">
+    <div class="panelHeader">
+      <div>
+        <h2>3D rigid-body simulation</h2>
+        <p id="engineSummary">3 landing motors • 6 outer ascent motors</p>
       </div>
+      <span id="phase" class="phase">READY</span>
+    </div>
 
-      <div class="warning">
-        This app uses fictionalized motor performance and intentionally simplified
-        physics. Do not use it to command, time, size, or certify a real rocket flight.
+    <div id="scene"></div>
+
+    <div class="legend">
+      <span><i class="dot ascent"></i> ascent position</span>
+      <span><i class="dot landing"></i> landing position</span>
+      <span><i class="dot inactive"></i> inactive</span>
+    </div>
+
+    <div class="engineSection">
+      <div class="octoweb" id="octoweb">
+        <div class="motor outer m0">1</div><div class="motor outer m1">2</div>
+        <div class="motor outer m2">3</div><div class="motor outer m3">4</div>
+        <div class="motor outer m4">5</div><div class="motor outer m5">6</div>
+        <div class="motor outer m6">7</div><div class="motor outer m7">8</div>
+        <div class="motor center">C</div>
       </div>
-    </section>
-
-    <section class="panel vehicle">
-      <h2>8 + 1 Octoweb Layout</h2>
-
-      <div class="engine-web" id="engineWeb">
-        <div class="engine outer e1">1</div>
-        <div class="engine outer e2">2</div>
-        <div class="engine outer e3">3</div>
-        <div class="engine outer e4">4</div>
-        <div class="engine outer e5">5</div>
-        <div class="engine outer e6">6</div>
-        <div class="engine outer e7">7</div>
-        <div class="engine outer e8">8</div>
-        <div class="engine center">C</div>
+      <div class="engineCopy">
+        <strong id="layoutTitle"></strong>
+        <p id="layoutText"></p>
       </div>
+    </div>
+  </section>
 
-      <div class="legend">
-        <span><i class="dot ascent-dot"></i> Ascent</span>
-        <span><i class="dot descent-dot"></i> Descent</span>
-        <span><i class="dot off-dot"></i> Off</span>
+  <section class="panel telemetry">
+    <div class="panelHeader">
+      <div>
+        <h2>Live telemetry</h2>
+        <p>Rapier body state sampled after each fixed physics step</p>
       </div>
+    </div>
 
-      <div class="stats">
-        <div><span>Selected ascent</span><strong id="statAscent">8 outer</strong></div>
-        <div><span>Selected descent</span><strong id="statDescent">1 center</strong></div>
-      </div>
-    </section>
+    <div class="metrics">
+      <div><span>Altitude</span><strong id="altitude">0.00 m</strong></div>
+      <div><span>Vertical velocity</span><strong id="verticalVelocity">0.00 m/s</strong></div>
+      <div><span>Total speed</span><strong id="speed">0.00 m/s</strong></div>
+      <div><span>Acceleration</span><strong id="acceleration">0.00 m/s²</strong></div>
+      <div><span>Pitch / tilt</span><strong id="attitude">0.00°</strong></div>
+      <div><span>Angular speed</span><strong id="angularSpeed">0.00 rad/s</strong></div>
+      <div><span>Mass</span><strong id="mass">0.000 kg</strong></div>
+      <div><span>Thrust</span><strong id="thrust">0.0 N</strong></div>
+      <div><span>Prediction</span><strong id="prediction">—</strong></div>
+      <div><span>Burn state</span><strong id="burnState">ARMED</strong></div>
+      <div><span>Touchdown speed</span><strong id="touchdown">—</strong></div>
+      <div><span>Simulation time</span><strong id="simTime">0.00 s</strong></div>
+    </div>
 
-    <section class="panel telemetry">
-      <h2>Fake Telemetry</h2>
-      <div class="telemetry-grid">
-        <div class="metric">
-          <span>Altitude</span>
-          <strong id="altitudeReadout">180.0 m</strong>
-        </div>
-        <div class="metric">
-          <span>Vertical speed</span>
-          <strong id="speedReadout">-28.0 m/s</strong>
-        </div>
-        <div class="metric">
-          <span>Acceleration</span>
-          <strong id="accelReadout">-9.8 m/s²</strong>
-        </div>
-        <div class="metric">
-          <span>Sim time</span>
-          <strong id="timeReadout">0.0 s</strong>
-        </div>
-      </div>
+    <canvas id="plot" width="1000" height="330"></canvas>
 
-      <div class="burn-card">
-        <span>Landing-burn cue</span>
-        <strong id="burnCue">CALCULATING</strong>
-        <p id="burnReason">
-          The simulator estimates a fictional “braking zone” from the current fake telemetry.
-        </p>
-      </div>
+    <h2 class="dataHeading">C6-5 reference data represented</h2>
+    <table>
+      <tbody>
+        <tr><th>Loaded motor mass</th><td>24.1 g</td></tr>
+        <tr><th>Propellant mass</th><td>12.2 g</td></tr>
+        <tr><th>Published duration</th><td>1.60 s</td></tr>
+        <tr><th>Published peak thrust</th><td>15.3 N</td></tr>
+        <tr><th>NAR listed tested impulse</th><td>6.93 N·s</td></tr>
+      </tbody>
+    </table>
 
-      <canvas id="chart" width="900" height="320"></canvas>
-    </section>
-  </main>
+    <p class="finePrint">
+      The motor curve is a smooth educational approximation normalized to the NAR-listed
+      impulse. It is not a sample-for-sample certification thrust trace.
+    </p>
+  </section>
 
-  <script src="app.js"></script>
+  <section class="panel modelInfo">
+    <h2>What is more accurate in this version?</h2>
+    <div class="cards">
+      <article><strong>Rapier rigid body</strong><span>Position, velocity, rotation, inertia and ground collision are integrated by Rapier.</span></article>
+      <article><strong>Real force locations</strong><span>Motor thrust is applied at each selected engine mount, so off-axis forces create torque.</span></article>
+      <article><strong>Changing mass & inertia</strong><span>Propellant depletion updates the rigid body's mass properties through the burn.</span></article>
+      <article><strong>3D aerodynamics</strong><span>Drag acts opposite air-relative velocity, including horizontal wind.</span></article>
+      <article><strong>Attitude-aware prediction</strong><span>The simulated landing predictor reduces usable vertical thrust when the vehicle is tilted.</span></article>
+      <article><strong>Fixed timestep</strong><span>The physics world advances in small fixed increments instead of depending on display frame rate.</span></article>
+    </div>
+  </section>
+</main>
+
+<script type="module" src="./main.js"></script>
 </body>
 </html>
