@@ -1,167 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TESLER Button</title>
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: #101010;
-      font-family: Arial, Helvetica, sans-serif;
-      overflow: hidden;
-    }
-
-    .stage {
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      align-content: center;
-      gap: 28px;
-      padding: 24px;
-    }
-
-    .counter {
-      color: white;
-      font-size: clamp(24px, 5vw, 44px);
-      font-weight: 800;
-      text-align: center;
-      text-shadow: 0 3px 10px rgba(0, 0, 0, 0.65);
-    }
-
-    .tesler-button {
-      width: min(72vw, 520px);
-      aspect-ratio: 2.6 / 1;
-      border: 8px solid #7a0000;
-      border-radius: 24px;
-      background: #e60000;
-      color: white;
-      cursor: pointer;
-      font-size: clamp(44px, 12vw, 112px);
-      font-weight: 900;
-      letter-spacing: 0;
-      line-height: 1;
-      text-shadow: 0 5px 0 #8b0000;
-      box-shadow:
-        0 18px 0 #7a0000,
-        0 30px 40px rgba(0, 0, 0, 0.55);
-      transition: transform 80ms ease, box-shadow 80ms ease, filter 120ms ease;
-    }
-
-    .tesler-button:hover {
-      filter: brightness(1.08);
-    }
-
-    .tesler-button:active {
-      transform: translateY(14px);
-      box-shadow:
-        0 4px 0 #7a0000,
-        0 18px 28px rgba(0, 0, 0, 0.48);
-    }
-
-    .flash {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      background: red;
-      opacity: 0;
-    }
-
-    .flash.active {
-      animation: red-flash 420ms ease-out;
-    }
-
-    .flash-image {
-      position: fixed;
-      inset: 50% auto auto 50%;
-      width: min(88vw, 760px);
-      aspect-ratio: 3 / 2;
-      object-fit: cover;
-      border: 8px solid white;
-      box-shadow: 0 26px 60px rgba(0, 0, 0, 0.7);
-      opacity: 0;
-      pointer-events: none;
-      transform: translate(-50%, -50%) scale(0.92);
-    }
-
-    .flash-image.active {
-      animation: image-pop 500ms ease-out;
-    }
-
-    @keyframes red-flash {
-      0% {
-        opacity: 0.95;
-      }
-
-      100% {
-        opacity: 0;
-      }
-    }
-
-    @keyframes image-pop {
-      0% {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(0.92);
-      }
-
-      76% {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-      }
-
-      100% {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(1.04);
-      }
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Octoweb Rocket Landing Burn Simulator</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <main class="stage">
-    <div id="counter" class="counter">Clicks: 0</div>
-    <button id="teslerButton" class="tesler-button" type="button">TESLER</button>
+  <header class="topbar">
+    <div>
+      <h1>Octoweb Landing Burn Visualizer</h1>
+      <p>Fake telemetry • simplified physics • visualization only</p>
+    </div>
+    <div class="badge">SIMULATION ONLY</div>
+  </header>
+
+  <main class="grid">
+    <section class="panel controls">
+      <h2>Simulation Inputs</h2>
+
+      <label>
+        Empty rocket mass (kg)
+        <input id="massInput" type="number" min="0.1" step="0.1" value="2.5" />
+      </label>
+
+      <label>
+        Starting descent altitude (m)
+        <input id="altitudeInput" type="number" min="10" step="10" value="180" />
+      </label>
+
+      <label>
+        Starting descent speed (m/s)
+        <input id="speedInput" type="number" min="1" step="1" value="28" />
+      </label>
+
+      <label>
+        Ascent engines selected
+        <input id="ascentCount" type="range" min="1" max="8" value="8" />
+        <span id="ascentCountLabel">8</span>
+      </label>
+
+      <label>
+        Descent engines selected
+        <input id="descentCount" type="range" min="0" max="1" value="1" />
+        <span id="descentCountLabel">1</span>
+      </label>
+
+      <div class="buttons">
+        <button id="resetBtn">Reset</button>
+        <button id="runBtn" class="primary">Run Descent</button>
+      </div>
+
+      <div class="warning">
+        This app uses fictionalized motor performance and intentionally simplified
+        physics. Do not use it to command, time, size, or certify a real rocket flight.
+      </div>
+    </section>
+
+    <section class="panel vehicle">
+      <h2>8 + 1 Octoweb Layout</h2>
+
+      <div class="engine-web" id="engineWeb">
+        <div class="engine outer e1">1</div>
+        <div class="engine outer e2">2</div>
+        <div class="engine outer e3">3</div>
+        <div class="engine outer e4">4</div>
+        <div class="engine outer e5">5</div>
+        <div class="engine outer e6">6</div>
+        <div class="engine outer e7">7</div>
+        <div class="engine outer e8">8</div>
+        <div class="engine center">C</div>
+      </div>
+
+      <div class="legend">
+        <span><i class="dot ascent-dot"></i> Ascent</span>
+        <span><i class="dot descent-dot"></i> Descent</span>
+        <span><i class="dot off-dot"></i> Off</span>
+      </div>
+
+      <div class="stats">
+        <div><span>Selected ascent</span><strong id="statAscent">8 outer</strong></div>
+        <div><span>Selected descent</span><strong id="statDescent">1 center</strong></div>
+      </div>
+    </section>
+
+    <section class="panel telemetry">
+      <h2>Fake Telemetry</h2>
+      <div class="telemetry-grid">
+        <div class="metric">
+          <span>Altitude</span>
+          <strong id="altitudeReadout">180.0 m</strong>
+        </div>
+        <div class="metric">
+          <span>Vertical speed</span>
+          <strong id="speedReadout">-28.0 m/s</strong>
+        </div>
+        <div class="metric">
+          <span>Acceleration</span>
+          <strong id="accelReadout">-9.8 m/s²</strong>
+        </div>
+        <div class="metric">
+          <span>Sim time</span>
+          <strong id="timeReadout">0.0 s</strong>
+        </div>
+      </div>
+
+      <div class="burn-card">
+        <span>Landing-burn cue</span>
+        <strong id="burnCue">CALCULATING</strong>
+        <p id="burnReason">
+          The simulator estimates a fictional “braking zone” from the current fake telemetry.
+        </p>
+      </div>
+
+      <canvas id="chart" width="900" height="320"></canvas>
+    </section>
   </main>
 
-  <div id="flash" class="flash" aria-hidden="true"></div>
-  <img
-    id="flashImage"
-    class="flash-image"
-    src="https://media.wired.com/photos/67d1b556d38aff896fec27be/3:2/w_2560%2Cc_limit/trump-tesla-gear-2204588044.jpg"
-    alt=""
-    aria-hidden="true"
-  >
-
-  <audio id="teslerSound" preload="auto">
-    <source src="https://www.myinstants.com/media/sounds/trump-i-love-tesler_5FwwWs1.mp3" type="audio/mpeg">
-  </audio>
-
-  <script>
-    const button = document.querySelector("#teslerButton");
-    const sound = document.querySelector("#teslerSound");
-    const flash = document.querySelector("#flash");
-    const flashImage = document.querySelector("#flashImage");
-    const counter = document.querySelector("#counter");
-    let clicks = 0;
-
-    button.addEventListener("click", () => {
-      clicks += 1;
-      counter.textContent = `Clicks: ${clicks}`;
-
-      sound.currentTime = 0;
-      sound.play();
-
-      flash.classList.remove("active");
-      flashImage.classList.remove("active");
-      void flash.offsetWidth;
-      void flashImage.offsetWidth;
-      flash.classList.add("active");
-      flashImage.classList.add("active");
-    });
-  </script>
+  <script src="app.js"></script>
 </body>
 </html>
