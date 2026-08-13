@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>EDF Mobile Flight Test</title>
+<style>
+:root{--bg:#09101e;--card:#121b30;--ink:#edf4ff;--muted:#94a8ca;--accent:#65c9ff;--good:#55df98;--bad:#ff5d6c;--warn:#ffd166}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:1050px;margin:auto;padding:12px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.card{background:var(--card);border-radius:15px;padding:13px}.wide{grid-column:1/-1}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button,select,input{font:inherit}button{border:0;border-radius:11px;padding:11px 14px;background:#263657;color:white;font-weight:800}
+button.primary{background:#1769aa}.good{background:#137947}.bad{background:#b52d3c;font-size:1.08rem}
+.pill{background:#202c47;border-radius:999px;padding:5px 9px;font-size:.82rem}.muted{color:var(--muted);font-size:.88rem}
+canvas{width:100%;height:215px;background:#070d18;border-radius:12px}
+.motorGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.motor{background:#080e1a;border-radius:12px;padding:8px;text-align:center}
+.bar{height:110px;background:#202b44;border-radius:10px;display:flex;align-items:flex-end;overflow:hidden}.fill{width:100%;height:0;background:linear-gradient(#6dd5ff,#2766d3)}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px 10px}.big{font-size:1.25rem;font-weight:850}.switch{display:flex;gap:8px;align-items:center;font-weight:750}
+.goodText{color:var(--good)}.badText{color:var(--bad)}
+@media(max-width:720px){.grid{grid-template-columns:1fr}.motorGrid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body><main>
+<h1>EDF Mobile Flight-Test Controller</h1>
+<div class="grid">
+
+<section class="card wide">
+<div class="row">
+<button id="sensorBtn" class="primary">Enable Phone IMU</button>
+<button id="serialBtn">Connect Arduino</button>
+<button id="cloudBtn">Connect Telemetry</button>
+<button id="stopBtn" class="bad">STOP ALL MOTORS</button>
+</div>
+<div class="row" style="margin-top:9px">
+<span class="pill" id="imuState">IMU off</span>
+<span class="pill" id="serialState">Serial off</span>
+<span class="pill" id="cloudState">Cloud off</span>
+<span class="pill" id="modeState">SAFE</span>
+</div>
+</section>
+
+<section class="card">
+<h3>Remote ground-control gate</h3>
+<label class="switch">
+<input id="remoteArm" type="checkbox">
+Allow PC ground control to command throttle
+</label>
+<p class="muted">This must be enabled locally on the phone after the rig is restrained. Turning it off immediately returns to SAFE.</p>
+<div class="kv">
+<span>Last remote command</span><b id="remoteAge">never</b>
+<span>Remote sequence</span><b id="remoteSeq">0</b>
+</div>
+</section>
+
+<section class="card">
+<h3>Local flight plan</h3>
+<div class="row">
+<select id="plan">
+<option value="SAFE">SAFE</option>
+<option value="SPOOL">Spool test</option>
+<option value="PID_TEST">Tethered PID test</option>
+</select>
+<button id="startPlan" class="good">Start</button>
+</div>
+<label class="muted">PID test baseline</label>
+<input id="pidBase" type="range" min="0" max="60" value="35" style="width:100%">
+<div><b id="pidBaseV">35%</b></div>
+</section>
+
+<section class="card wide">
+<h3>Attitude</h3>
+<canvas id="horizon"></canvas>
+<div class="kv">
+<span>Pitch</span><b id="pitch">0.0°</b>
+<span>Roll</span><b id="roll">0.0°</b>
+<span>Pitch rate</span><b id="pr">0.0°/s</b>
+<span>Roll rate</span><b id="rr">0.0°/s</b>
+</div>
+</section>
+
+<section class="card">
+<h3>PD tuning</h3>
+<div class="kv">
+<span>Pitch KP</span><input id="pkp" type="number" value="0.018" step="0.001">
+<span>Pitch KD</span><input id="pkd" type="number" value="0.010" step="0.001">
+<span>Roll KP</span><input id="rkp" type="number" value="0.018" step="0.001">
+<span>Roll KD</span><input id="rkd" type="number" value="0.010" step="0.001">
+<span>Max correction</span><input id="maxCorr" type="number" value="18" step="1">
+</div>
+</section>
+
+<section class="card">
+<h3>Statistics</h3>
+<div class="kv">
+<span>Max |pitch|</span><b id="maxPitch">0.0°</b>
+<span>Max |roll|</span><b id="maxRoll">0.0°</b>
+<span>Max pitch rate</span><b id="maxPR">0.0°/s</b>
+<span>Max roll rate</span><b id="maxRR">0.0°/s</b>
+<span>IMU age</span><b id="imuAge">—</b>
+</div>
+</section>
+
+<section class="card wide">
+<h3>4 control EDFs</h3>
+<div class="motorGrid">
+<div class="motor"><b>Front</b><div class="bar"><div id="b0" class="fill"></div></div><div id="m0" class="big">0%</div></div>
+<div class="motor"><b>Right</b><div class="bar"><div id="b1" class="fill"></div></div><div id="m1" class="big">0%</div></div>
+<div class="motor"><b>Rear</b><div class="bar"><div id="b2" class="fill"></div></div><div id="m2" class="big">0%</div></div>
+<div class="motor"><b>Left</b><div class="bar"><div id="b3" class="fill"></div></div><div id="m3" class="big">0%</div></div>
+</div>
+</section>
+
+<section class="card wide"><h3>Event log</h3><pre id="log" style="max-height:180px;overflow:auto;white-space:pre-wrap;color:#b9ccef"></pre></section>
+</div>
+
+<script>
+"use strict";
+
+const PROJECT_ID="example.com/edf-test-rig-v2"; // SAME ID ON GCS
+const CLOUD_URL="wss://clouddata.turbowarp.org";
+const CLOUD_TELEMETRY_MS=200;
+const SERIAL_HEARTBEAT_MS=50;
+const MAX_MOTOR=60;
+const REMOTE_COMMAND_TIMEOUT_MS=1000;
+
+let cloud=null,serialPort=null,serialWriter=null;
+let pitch=0,roll=0,pitchRate=0,rollRate=0,zeroPitch=0,zeroRoll=0;
+let imuEnabled=false,lastImu=0;
+let maxPitch=0,maxRoll=0,maxPR=0,maxRR=0;
+let motors=[0,0,0,0];
+let mode="SAFE",planStart=0;
+let lastRemoteSeq=-1,lastRemoteTime=0;
+let remoteDesired=[0,0,0,0];
+let lastStopSeq=-1;
+
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const val=id=>Number($(id).value)||0;
+function log(s){$("log").textContent+=`[${new Date().toLocaleTimeString()}] ${s}\n`;$("log").scrollTop=$("log").scrollHeight}
+
+async function enableIMU(){
+  try{
+    if(typeof DeviceMotionEvent!=="undefined" && typeof DeviceMotionEvent.requestPermission==="function"){
+      if(await DeviceMotionEvent.requestPermission()!=="granted")throw new Error("permission denied");
+    }
+    window.addEventListener("deviceorientation",e=>{
+      if(e.beta!=null)pitch=e.beta-zeroPitch;
+      if(e.gamma!=null)roll=e.gamma-zeroRoll;
+      maxPitch=Math.max(maxPitch,Math.abs(pitch));maxRoll=Math.max(maxRoll,Math.abs(roll));
+    },true);
+    window.addEventListener("devicemotion",e=>{
+      const r=e.rotationRate;
+      if(r){if(r.beta!=null)pitchRate=r.beta;if(r.gamma!=null)rollRate=r.gamma}
+      maxPR=Math.max(maxPR,Math.abs(pitchRate));maxRR=Math.max(maxRR,Math.abs(rollRate));
+      lastImu=performance.now();
+    },true);
+    imuEnabled=true;$("imuState").textContent="IMU on";$("imuState").classList.add("goodText");log("IMU enabled");
+  }catch(e){log("IMU error: "+e.message)}
+}
+$("horizon").onclick=()=>{zeroPitch+=pitch;zeroRoll+=roll;pitch=0;roll=0;log("Attitude zeroed")};
+
+async function connectSerial(){
+  try{
+    serialPort=await navigator.serial.requestPort();
+    await serialPort.open({baudRate:115200});
+    serialWriter=serialPort.writable.getWriter();
+    $("serialState").textContent="Serial connected";$("serialState").classList.add("goodText");log("Arduino connected");
+  }catch(e){log("Serial error: "+e.message)}
+}
+async function sendLine(s){
+  if(!serialWriter)return;
+  try{await serialWriter.write(new TextEncoder().encode(s+"\n"))}
+  catch(e){log("Serial write error: "+e.message);safeStop("serial write failure")}
+}
+setInterval(()=>{if(serialWriter)sendLine(`M,${motors.map(x=>Math.round(x)).join(",")}`)},SERIAL_HEARTBEAT_MS);
+
+function cloudSend(obj){
+  if(cloud&&cloud.readyState===WebSocket.OPEN)cloud.send(JSON.stringify(obj));
+}
+function cloudSet(name,value){
+  if(!Number.isFinite(Number(value)))return;
+  cloudSend({method:"set",name:"☁ "+name,value:String(value)});
+}
+function connectCloud(){
+  cloud=new WebSocket(CLOUD_URL);
+  cloud.onopen=()=>{
+    const user="player"+Math.floor(10000+Math.random()*80000);
+    cloudSend({method:"handshake",project_id:PROJECT_ID,user});
+    $("cloudState").textContent="Cloud connected";$("cloudState").classList.add("goodText");log("Cloud connected");
+  };
+  cloud.onmessage=e=>parseCloudFrame(String(e.data));
+  cloud.onclose=e=>{log("Cloud closed "+e.code+" "+(e.reason||""));$("cloudState").textContent="Cloud off";safeStop("cloud disconnected while remote armed")};
+  cloud.onerror=()=>log("Cloud error");
+}
+function parseCloudFrame(frame){
+  for(const line of frame.split("\n")){
+    if(!line.trim())continue;
+    try{
+      const m=JSON.parse(line);
+      if(m.method!=="set")continue;
+      const n=m.name.replace(/^☁\s*/,"");
+      const v=Number(m.value);
+      if(n==="cmd_seq"){
+        if(v!==lastRemoteSeq){
+          lastRemoteSeq=v;lastRemoteTime=performance.now();
+          $("remoteSeq").textContent=String(v);
+        }
+      }else if(n==="cmd_front")remoteDesired[0]=v;
+      else if(n==="cmd_right")remoteDesired[1]=v;
+      else if(n==="cmd_rear")remoteDesired[2]=v;
+      else if(n==="cmd_left")remoteDesired[3]=v;
+      else if(n==="stop_seq"&&v!==lastStopSeq){
+        lastStopSeq=v;
+        safeStop("REMOTE STOP");
+      }
+    }catch(e){}
+  }
+}
+
+function pushTelemetry(){
+  cloudSet("pitch_x10",Math.round(pitch*10));
+  cloudSet("roll_x10",Math.round(roll*10));
+  cloudSet("pitchRate_x10",Math.round(pitchRate*10));
+  cloudSet("rollRate_x10",Math.round(rollRate*10));
+  cloudSet("mFront",Math.round(motors[0]));cloudSet("mRight",Math.round(motors[1]));
+  cloudSet("mRear",Math.round(motors[2]));cloudSet("mLeft",Math.round(motors[3]));
+  cloudSet("maxPitch_x10",Math.round(maxPitch*10));cloudSet("maxRoll_x10",Math.round(maxRoll*10));
+  cloudSet("maxPR_x10",Math.round(maxPR*10));cloudSet("maxRR_x10",Math.round(maxRR*10));
+  cloudSet("remoteArmed",$("remoteArm").checked?1:0);
+  cloudSet("mode",mode==="SAFE"?0:mode==="SPOOL"?1:mode==="PID_TEST"?2:3);
+  cloudSet("heartbeat",Date.now()%1000000000);
+}
+setInterval(pushTelemetry,CLOUD_TELEMETRY_MS);
+
+function setMotors(a){
+  motors=a.map(x=>clamp(Number(x)||0,0,MAX_MOTOR));
+  motors.forEach((v,i)=>{$("m"+i).textContent=v.toFixed(0)+"%";$("b"+i).style.height=v+"%"});
+}
+function safeStop(reason){
+  mode="SAFE";setMotors([0,0,0,0]);sendLine("STOP");$("modeState").textContent="SAFE";log("STOP: "+reason);
+}
+$("remoteArm").onchange=()=>{
+  if(!$("remoteArm").checked)safeStop("remote control disarmed locally");
+  else {mode="REMOTE";$("modeState").textContent="REMOTE";log("Remote ground control ARMED locally")}
+};
+
+function localController(){
+  if(mode==="SAFE"){setMotors([0,0,0,0]);return}
+
+  if(mode==="REMOTE"){
+    if(!$("remoteArm").checked){safeStop("remote not armed");return}
+    if(performance.now()-lastRemoteTime>REMOTE_COMMAND_TIMEOUT_MS){safeStop("remote command timeout");return}
+    setMotors(remoteDesired);return;
+  }
+
+  const t=(performance.now()-planStart)/1000;
+  if(mode==="SPOOL"){
+    let b=t<2?10*t:t<5?20:t<7?20*(1-(t-5)/2):0;
+    if(t>=7){safeStop("spool complete");return}
+    setMotors([b,b,b,b]);return;
+  }
+
+  if(mode==="PID_TEST"){
+    let base=t<3?val("pidBase")*t/3:val("pidBase");
+    const p=clamp(val("pkp")*(-pitch)*100-val("pkd")*pitchRate*100,-val("maxCorr"),val("maxCorr"));
+    const r=clamp(val("rkp")*(-roll)*100-val("rkd")*rollRate*100,-val("maxCorr"),val("maxCorr"));
+    setMotors([base+p,base+r,base-p,base-r]);
+    if(imuEnabled&&performance.now()-lastImu>500)safeStop("IMU timeout");
+  }
+}
+setInterval(localController,20);
+
+function draw(){
+  const c=$("horizon"),dpr=devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;
+  if(c.width!==w*dpr||c.height!==h*dpr){c.width=w*dpr;c.height=h*dpr}
+  const x=c.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
+  x.save();x.translate(w/2,h/2);x.rotate(roll*Math.PI/180);
+  const py=clamp(pitch,-45,45)/45*h*.24;
+  x.fillStyle="#183d64";x.fillRect(-w,py,w*2,h);
+  x.fillStyle="#5d3d22";x.fillRect(-w,-h, w*2,h+py);
+  x.strokeStyle="#f4f7ff";x.lineWidth=4;x.beginPath();x.moveTo(-w*.3,py);x.lineTo(w*.3,py);x.stroke();
+  x.restore();
+  x.strokeStyle="#dce8ff";x.lineWidth=2;x.beginPath();x.moveTo(w/2-25,h/2);x.lineTo(w/2+25,h/2);x.stroke();
+}
+function ui(){
+  $("pitch").textContent=pitch.toFixed(1)+"°";$("roll").textContent=roll.toFixed(1)+"°";
+  $("pr").textContent=pitchRate.toFixed(1)+"°/s";$("rr").textContent=rollRate.toFixed(1)+"°/s";
+  $("maxPitch").textContent=maxPitch.toFixed(1)+"°";$("maxRoll").textContent=maxRoll.toFixed(1)+"°";
+  $("maxPR").textContent=maxPR.toFixed(1)+"°/s";$("maxRR").textContent=maxRR.toFixed(1)+"°/s";
+  $("imuAge").textContent=lastImu?(performance.now()-lastImu).toFixed(0)+" ms":"—";
+  $("remoteAge").textContent=lastRemoteTime?(performance.now()-lastRemoteTime).toFixed(0)+" ms":"never";
+  $("pidBaseV").textContent=$("pidBase").value+"%";draw();requestAnimationFrame(ui);
+}
+$("sensorBtn").onclick=enableIMU;$("serialBtn").onclick=connectSerial;$("cloudBtn").onclick=connectCloud;$("stopBtn").onclick=()=>safeStop("LOCAL STOP");
+$("startPlan").onclick=()=>{if($("remoteArm").checked)$("remoteArm").checked=false;mode=$("plan").value;planStart=performance.now();$("modeState").textContent=mode;log("Local plan "+mode)};
+window.addEventListener("pagehide",()=>safeStop("page hidden"));window.addEventListener("beforeunload",()=>safeStop("page closed"));
+requestAnimationFrame(ui);
+</script></main></body></html>

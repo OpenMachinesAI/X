@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EDF Ground Control Dashboard</title>
+<style>
+:root{--bg:#070b14;--panel:#11192b;--panel2:#0a101d;--ink:#edf5ff;--muted:#8fa5c7;--good:#51dc94;--bad:#ff5969;--warn:#ffd166;--accent:#63c9ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:1500px;margin:auto;padding:14px}h1{margin:4px 0 12px}.top{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.card{background:var(--panel);border-radius:15px;padding:13px;margin-bottom:10px}.dashboard{display:grid;grid-template-columns:1.25fr .75fr;gap:10px}
+.statGrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}.stat{background:var(--panel2);padding:10px;border-radius:11px}.stat b{font-size:1.35rem;display:block}
+.muted{color:var(--muted);font-size:.85rem}.good{color:var(--good)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+button,input{font:inherit}button{padding:11px 14px;border:0;border-radius:10px;background:#235483;color:white;font-weight:800}
+.stop{background:#c32337;font-size:1.45rem;padding:16px 26px}.send{background:#147b49}
+canvas{width:100%;height:285px;background:var(--panel2);border-radius:12px}
+.motorGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.motor{background:var(--panel2);padding:10px;border-radius:11px;text-align:center}
+.bar{height:120px;background:#222c45;border-radius:9px;display:flex;align-items:flex-end;overflow:hidden}.fill{width:100%;height:0;background:linear-gradient(#65c9ff,#326bd4)}
+input[type=range]{width:100%}.throttleRow{display:grid;grid-template-columns:90px 1fr 60px;gap:9px;align-items:center;margin:8px 0}
+.horizonWrap{position:relative}.legend{display:flex;gap:18px}.dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:5px}
+@media(max-width:900px){.dashboard{grid-template-columns:1fr}.statGrid{grid-template-columns:repeat(3,1fr)}.motorGrid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body><main>
+<h1>EDF Ground Control System</h1>
+
+<section class="card">
+<div class="top">
+<input id="pid" size="32" value="example.com/edf-test-rig-v2">
+<button id="connect">Connect TurboWarp</button>
+<span id="state" class="muted">offline</span>
+<span id="remoteArmed" class="muted">Phone remote gate: unknown</span>
+<button id="STOP" class="stop">■ STOP ALL</button>
+</div>
+<p class="muted">The red stop requests a remote stop over cloud telemetry. The phone/Arduino local failsafes remain authoritative.</p>
+</section>
+
+<section class="statGrid">
+<div class="stat"><span class="muted">Pitch</span><b id="pitch">0.0°</b></div>
+<div class="stat"><span class="muted">Roll</span><b id="roll">0.0°</b></div>
+<div class="stat"><span class="muted">Pitch rate</span><b id="pr">0.0°/s</b></div>
+<div class="stat"><span class="muted">Roll rate</span><b id="rr">0.0°/s</b></div>
+<div class="stat"><span class="muted">Telemetry</span><b id="hz">0.0 Hz</b></div>
+<div class="stat"><span class="muted">Heartbeat age</span><b id="hbAge">—</b></div>
+<div class="stat"><span class="muted">Max |pitch|</span><b id="maxP">0.0°</b></div>
+<div class="stat"><span class="muted">Max |roll|</span><b id="maxR">0.0°</b></div>
+<div class="stat"><span class="muted">Max pitch rate</span><b id="maxPR">0°/s</b></div>
+<div class="stat"><span class="muted">Max roll rate</span><b id="maxRR">0°/s</b></div>
+<div class="stat"><span class="muted">RMS attitude</span><b id="rms">0.0°</b></div>
+<div class="stat"><span class="muted">Mode</span><b id="mode">SAFE</b></div>
+</section>
+
+<div class="dashboard">
+<section class="card">
+<h3>Attitude history</h3>
+<canvas id="plot"></canvas>
+<div class="legend"><span><i class="dot" style="background:#65c9ff"></i>Pitch</span><span><i class="dot" style="background:#ffd166"></i>Roll</span></div>
+</section>
+<section class="card">
+<h3>Artificial horizon</h3>
+<canvas id="horizon"></canvas>
+</section>
+</div>
+
+<section class="card">
+<h3>4 EDF telemetry</h3>
+<div class="motorGrid">
+<div class="motor"><b>Front</b><div class="bar"><div id="b0" class="fill"></div></div><b id="m0">0%</b></div>
+<div class="motor"><b>Right</b><div class="bar"><div id="b1" class="fill"></div></div><b id="m1">0%</b></div>
+<div class="motor"><b>Rear</b><div class="bar"><div id="b2" class="fill"></div></div><b id="m2">0%</b></div>
+<div class="motor"><b>Left</b><div class="bar"><div id="b3" class="fill"></div></div><b id="m3">0%</b></div>
+</div>
+</section>
+
+<section class="card">
+<h3>Remote manual throttle — tethered test only</h3>
+<p class="muted">The phone must have “Allow PC ground control” armed locally. Commands are clamped to 60% on the phone and Arduino.</p>
+<div class="throttleRow"><b>Front</b><input id="c0" type="range" min="0" max="60" value="0"><b id="cv0">0%</b></div>
+<div class="throttleRow"><b>Right</b><input id="c1" type="range" min="0" max="60" value="0"><b id="cv1">0%</b></div>
+<div class="throttleRow"><b>Rear</b><input id="c2" type="range" min="0" max="60" value="0"><b id="cv2">0%</b></div>
+<div class="throttleRow"><b>Left</b><input id="c3" type="range" min="0" max="60" value="0"><b id="cv3">0%</b></div>
+<div class="top">
+<button id="zero">Set sliders 0%</button>
+<button id="all20">All 20%</button>
+<button id="all40">All 40%</button>
+<button id="send" class="send">SEND THROTTLE</button>
+<span class="muted">Command seq: <b id="seq">0</b></span>
+</div>
+</section>
+
+<section class="card"><h3>Cloud diagnostics</h3><pre id="raw" style="max-height:170px;overflow:auto;white-space:pre-wrap;color:#a8bee0"></pre></section>
+
+<script>
+"use strict";
+const CLOUD_URL="wss://clouddata.turbowarp.org";
+let ws=null,data={},hist=[],seq=0,stopSeq=0,rxTimes=[],lastHeartbeatLocal=0,lastHeartbeatValue=null;
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+function sendObj(o){if(ws&&ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify(o))}
+function setCloud(name,v){sendObj({method:"set",name:"☁ "+name,value:String(Math.round(Number(v)||0))})}
+
+function connect(){
+  const project_id=$("pid").value.trim(),user="player"+Math.floor(10000+Math.random()*80000);
+  ws=new WebSocket(CLOUD_URL);
+  ws.onopen=()=>{sendObj({method:"handshake",project_id,user});$("state").textContent="connected";$("state").className="good"};
+  ws.onmessage=e=>parseFrame(String(e.data));
+  ws.onclose=e=>{$("state").textContent="closed "+e.code;$("state").className="bad";raw("CLOSE "+e.code+" "+(e.reason||""))};
+  ws.onerror=()=>raw("WebSocket error");
+}
+function raw(s){$("raw").textContent=s+"\n"+$("raw").textContent.slice(0,5000)}
+function parseFrame(frame){
+  const now=performance.now();rxTimes.push(now);rxTimes=rxTimes.filter(t=>now-t<3000);
+  for(const line of frame.split("\n")){
+    if(!line.trim())continue;
+    try{
+      const m=JSON.parse(line);if(m.method!=="set")continue;
+      const k=m.name.replace(/^☁\s*/,""),v=Number(m.value);data[k]=v;
+      if(k==="heartbeat"&&v!==lastHeartbeatValue){lastHeartbeatValue=v;lastHeartbeatLocal=performance.now()}
+    }catch(e){raw("parse error "+line)}
+  }
+  update();
+}
+
+function command(){
+  seq++;
+  setCloud("cmd_front",$("c0").value);setCloud("cmd_right",$("c1").value);
+  setCloud("cmd_rear",$("c2").value);setCloud("cmd_left",$("c3").value);
+  setCloud("cmd_seq",seq);$("seq").textContent=seq;
+}
+function stopAll(){
+  ["c0","c1","c2","c3"].forEach(id=>$(id).value=0);syncSliders();
+  stopSeq++;setCloud("stop_seq",stopSeq);
+  // Also send zero values so the next accepted remote command is safe.
+  setCloud("cmd_front",0);setCloud("cmd_right",0);setCloud("cmd_rear",0);setCloud("cmd_left",0);
+  seq++;setCloud("cmd_seq",seq);$("seq").textContent=seq;
+}
+function syncSliders(){for(let i=0;i<4;i++)$("cv"+i).textContent=$("c"+i).value+"%"}
+
+function update(){
+  const p=(data.pitch_x10||0)/10,r=(data.roll_x10||0)/10,pr=(data.pitchRate_x10||0)/10,rr=(data.rollRate_x10||0)/10;
+  $("pitch").textContent=p.toFixed(1)+"°";$("roll").textContent=r.toFixed(1)+"°";$("pr").textContent=pr.toFixed(1)+"°/s";$("rr").textContent=rr.toFixed(1)+"°/s";
+  $("maxP").textContent=((data.maxPitch_x10||0)/10).toFixed(1)+"°";$("maxR").textContent=((data.maxRoll_x10||0)/10).toFixed(1)+"°";
+  $("maxPR").textContent=((data.maxPR_x10||0)/10).toFixed(0)+"°/s";$("maxRR").textContent=((data.maxRR_x10||0)/10).toFixed(0)+"°/s";
+  const modeMap=["SAFE","SPOOL","PID TEST","REMOTE"];$("mode").textContent=modeMap[data.mode||0]||String(data.mode);
+  $("remoteArmed").textContent="Phone remote gate: "+(data.remoteArmed===1?"ARMED":"DISARMED");
+  $("remoteArmed").className=data.remoteArmed===1?"good":"bad";
+  ["mFront","mRight","mRear","mLeft"].forEach((k,i)=>{const v=data[k]||0;$("m"+i).textContent=v+"%";$("b"+i).style.height=clamp(v,0,100)+"%"});
+  hist.push({t:performance.now(),p,r});hist=hist.filter(x=>performance.now()-x.t<30000);
+  const ss=hist.reduce((a,x)=>a+x.p*x.p+x.r*x.r,0),n=Math.max(1,hist.length*2);$("rms").textContent=Math.sqrt(ss/n).toFixed(1)+"°";
+  drawPlot();drawHorizon(p,r);
+}
+function drawPlot(){
+  const c=$("plot"),dpr=devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;if(c.width!==w*dpr||c.height!==h*dpr){c.width=w*dpr;c.height=h*dpr}
+  const x=c.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
+  x.strokeStyle="#263149";x.lineWidth=1;for(let i=1;i<6;i++){let y=h*i/6;x.beginPath();x.moveTo(0,y);x.lineTo(w,y);x.stroke()}
+  [["p","#65c9ff"],["r","#ffd166"]].forEach(([k,col])=>{x.strokeStyle=col;x.lineWidth=2;x.beginPath();hist.forEach((v,i)=>{let xx=hist.length<2?0:i/(hist.length-1)*w,yy=h/2-clamp(v[k],-30,30)/30*h*.43;i?x.lineTo(xx,yy):x.moveTo(xx,yy)});x.stroke()})
+}
+function drawHorizon(p,r){
+  const c=$("horizon"),dpr=devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;if(c.width!==w*dpr||c.height!==h*dpr){c.width=w*dpr;c.height=h*dpr}
+  const x=c.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
+  x.save();x.translate(w/2,h/2);x.rotate(r*Math.PI/180);let py=clamp(p,-45,45)/45*h*.28;
+  x.fillStyle="#18486d";x.fillRect(-w,-h+py,w*2,h);x.fillStyle="#674326";x.fillRect(-w,py,w*2,h);
+  x.strokeStyle="#fff";x.lineWidth=4;x.beginPath();x.moveTo(-w*.35,py);x.lineTo(w*.35,py);x.stroke();x.restore();
+  x.strokeStyle="#fff";x.lineWidth=3;x.beginPath();x.moveTo(w/2-25,h/2);x.lineTo(w/2+25,h/2);x.stroke();
+}
+setInterval(()=>{
+  $("hz").textContent=(rxTimes.length/3).toFixed(1)+" Hz";
+  $("hbAge").textContent=lastHeartbeatLocal?(performance.now()-lastHeartbeatLocal).toFixed(0)+" ms":"—";
+},250);
+
+$("connect").onclick=connect;$("send").onclick=command;$("STOP").onclick=stopAll;
+$("zero").onclick=()=>{["c0","c1","c2","c3"].forEach(id=>$(id).value=0);syncSliders()};
+$("all20").onclick=()=>{["c0","c1","c2","c3"].forEach(id=>$(id).value=20);syncSliders()};
+$("all40").onclick=()=>{["c0","c1","c2","c3"].forEach(id=>$(id).value=40);syncSliders()};
+["c0","c1","c2","c3"].forEach(id=>$(id).oninput=syncSliders);syncSliders();
+</script></main></body></html>
