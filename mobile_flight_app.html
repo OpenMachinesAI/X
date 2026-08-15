@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>V3 Mobile Flight App</title>
+  <style>
+    :root{color-scheme:dark;--bg:#101214;--panel:#1a2025;--panel2:#232b32;--line:#3c4852;--text:#edf2f4;--muted:#aab3ba;--accent:#42c89b;--warn:#f6b84b;--danger:#ef476f;--blue:#61b7df}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:0}
+    header{position:sticky;top:0;z-index:5;background:#15191d;border-bottom:1px solid var(--line);padding:12px;display:grid;gap:10px}
+    h1{font-size:18px;margin:0}main{padding:12px;display:grid;gap:12px}section{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px}
+    h2{font-size:15px;margin:0 0 10px}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}button,input{font:inherit}
+    button{min-height:40px;border:1px solid var(--line);border-radius:7px;background:var(--panel2);color:var(--text);padding:8px 11px;font-weight:700}
+    button.primary{background:#126c56;border-color:#2aa783}button.warn{background:#654a11;border-color:var(--warn)}button.danger{background:#8f1836;border-color:var(--danger);font-size:18px}
+    input{width:100%;min-height:36px;background:#10161a;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+    label{display:grid;gap:5px;color:var(--muted);font-size:12px;margin-bottom:10px}.status{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .pill{border:1px solid var(--line);border-radius:7px;background:var(--panel2);padding:8px;min-height:54px}.pill span{display:block;color:var(--muted);font-size:12px}.pill strong{font-size:17px;overflow-wrap:anywhere}
+    .viewer{height:250px;display:grid;place-items:center;perspective:680px;border:1px solid var(--line);border-radius:8px;background:linear-gradient(#28313a 1px,transparent 1px),linear-gradient(90deg,#28313a 1px,transparent 1px);background-size:32px 32px;overflow:hidden}
+    .rig{width:160px;height:160px;position:relative;transform-style:preserve-3d;transition:transform 45ms linear}.boom{position:absolute;left:50%;top:50%;width:160px;height:10px;margin-left:-80px;margin-top:-5px;border-radius:8px;background:#c3ccd0}.boom.y{transform:rotate(90deg)}
+    .motor{position:absolute;width:42px;height:42px;border:3px solid #e2ebee;border-radius:50%;background:#2e373d;display:grid;place-items:center;font-size:10px;font-weight:850}.front{left:59px;top:-16px}.rear{left:59px;bottom:-16px}.left{left:-16px;top:59px}.right{right:-16px;top:59px}.center{position:absolute;left:50px;top:50px;width:60px;height:60px;border:4px solid #d9f3ff;border-radius:50%;background:var(--blue);color:#081116;display:grid;place-items:center;font-weight:900}
+    .bars{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.bar{display:grid;grid-template-rows:80px 18px;gap:5px;justify-items:center;font-size:11px;color:var(--muted)}.track{height:80px;width:22px;border:1px solid var(--line);border-radius:6px;background:#10161a;display:flex;align-items:end;overflow:hidden}.fill{width:100%;height:0;background:var(--accent)}
+    .log{height:130px;overflow:auto;white-space:pre-wrap;background:#0c1013;border:1px solid var(--line);border-radius:8px;padding:8px;color:#c9d1d6;font:12px ui-monospace,Menlo,Consolas,monospace}.small{color:var(--muted);font-size:12px;line-height:1.35}
+  </style>
+</head>
+<body>
+<header>
+  <h1>V3 Mobile Flight App</h1>
+  <div class="row">
+    <button id="sensorBtn" class="primary">Enable Sensors</button>
+    <button id="serialBtn" class="primary">Connect Uno</button>
+    <button id="cloudBtn">Connect Cloud</button>
+    <button id="armBtn" class="warn">Arm</button>
+    <button id="stopBtn" class="danger">STOP</button>
+  </div>
+</header>
+<main>
+  <section>
+    <h2>Links</h2>
+    <label>TurboWarp project ID<input id="projectId" value="example.com/edf-v3-phone-cloud"></label>
+    <div class="status">
+      <div class="pill"><span>Phone sensors</span><strong id="sensorState">Off</strong></div>
+      <div class="pill"><span>Uno serial</span><strong id="serialState">Offline</strong></div>
+      <div class="pill"><span>Cloud</span><strong id="cloudState">Offline</strong></div>
+      <div class="pill"><span>Controller</span><strong id="armState">Disarmed</strong></div>
+      <div class="pill"><span>Abort</span><strong id="abortState">None</strong></div>
+      <div class="pill"><span>PC command</span><strong id="pcState">None</strong></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Attitude</h2>
+    <div class="viewer">
+      <div id="rig" class="rig">
+        <div class="boom"></div><div class="boom y"></div>
+        <div class="motor front">F</div><div class="motor rear">R</div><div class="motor left">L</div><div class="motor right">R</div><div class="center">90</div>
+      </div>
+    </div>
+    <div class="status" style="margin-top:8px">
+      <div class="pill"><span>Roll</span><strong id="rollRead">0.0 deg</strong></div>
+      <div class="pill"><span>Pitch</span><strong id="pitchRead">0.0 deg</strong></div>
+      <div class="pill"><span>Yaw</span><strong id="yawRead">0.0 deg</strong></div>
+      <div class="pill"><span>Yaw error</span><strong id="yawErrRead">0.0 deg</strong></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Local Controls</h2>
+    <label>Center EDF throttle <strong id="thrLabel">0%</strong><input id="thrSlider" type="range" min="0" max="35" value="0"></label>
+    <label>Outer 40 mm max <strong id="outerLabel">18%</strong><input id="outerSlider" type="range" min="0" max="30" value="18"></label>
+    <div class="row">
+      <button id="levelBtn">Set Current Pose Upright</button>
+      <button id="clearAbortBtn">Clear Abort</button>
+    </div>
+    <p class="small">PC commands come through the cloud, but the phone still sends attitude directly to the Uno over USB. The fast motor safety logic stays on the Uno.</p>
+  </section>
+
+  <section>
+    <h2>Motor Output</h2>
+    <div class="bars">
+      <div class="bar"><div class="track"><div id="frontBar" class="fill"></div></div><div>Front</div></div>
+      <div class="bar"><div class="track"><div id="rearBar" class="fill"></div></div><div>Rear</div></div>
+      <div class="bar"><div class="track"><div id="leftBar" class="fill"></div></div><div>Left</div></div>
+      <div class="bar"><div class="track"><div id="rightBar" class="fill"></div></div><div>Right</div></div>
+      <div class="bar"><div class="track"><div id="centerBar" class="fill"></div></div><div>Center</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Log</h2>
+    <div id="log" class="log"></div>
+  </section>
+</main>
+
+<script>
+const els = Object.fromEntries([...document.querySelectorAll('[id]')].map(el => [el.id, el]));
+const CLOUD = name => `☁ ${name}`;
+const abortNames = ['None','Operator STOP','Phone timeout','Command timeout','Tilt limit','Yaw drift > 50 deg'];
+let port, reader, writer, ws;
+let serialConnected = false, cloudConnected = false, sensorsEnabled = false;
+let rx = '', seq = 0, lastSensorMs = 0, lastCloudCmd = {};
+let cloudConnectedAt = 0;
+let phone = { roll:0, pitch:0, yaw:0 };
+let tel = { armed:0, abort:0, roll:0, pitch:0, yaw:0, yawErr:0, ro:0, po:0, thr:0, outerMax:18 };
+
+function log(s){ const t = new Date().toLocaleTimeString(); els.log.textContent += `[${t}] ${s}\n`; els.log.scrollTop = els.log.scrollHeight; }
+function clamp(v, lo, hi){ return Math.min(hi, Math.max(lo, v)); }
+async function sendSerial(line, quiet=false){ if(!writer) return; await writer.write(new TextEncoder().encode(line + '\n')); if(!quiet) log('> Uno ' + line); }
+function parsePairs(line){ const out={}; for(const p of line.trim().split(/\s+/).slice(1)){ const i=p.indexOf('='); if(i>0) out[p.slice(0,i)] = p.slice(i+1); } return out; }
+function updateUi(){
+  const roll = Number(tel.roll ?? phone.roll), pitch = Number(tel.pitch ?? phone.pitch), yaw = Number(tel.yaw ?? phone.yaw);
+  els.sensorState.textContent = sensorsEnabled ? (Date.now() - lastSensorMs < 350 ? 'Live' : 'Waiting') : 'Off';
+  els.serialState.textContent = serialConnected ? 'Connected' : 'Offline';
+  els.cloudState.textContent = cloudConnected ? 'Connected' : 'Offline';
+  els.armState.textContent = tel.armed == 1 ? 'Armed' : 'Disarmed';
+  els.abortState.textContent = abortNames[Number(tel.abort || 0)] || `Code ${tel.abort}`;
+  els.abortState.style.color = Number(tel.abort || 0) ? 'var(--danger)' : 'var(--accent)';
+  els.rollRead.textContent = `${roll.toFixed(1)} deg`;
+  els.pitchRead.textContent = `${pitch.toFixed(1)} deg`;
+  els.yawRead.textContent = `${yaw.toFixed(1)} deg`;
+  els.yawErrRead.textContent = `${Number(tel.yawErr || 0).toFixed(1)} deg`;
+  els.rig.style.transform = `rotateX(${pitch}deg) rotateY(${-roll}deg) rotateZ(${yaw * 0.08}deg)`;
+  const outerBase = Number(tel.thr || 0) * 0.20, outerMax = Number(tel.outerMax || 18), ro = Number(tel.ro || 0), po = Number(tel.po || 0);
+  setBar('frontBar', clamp(outerBase + po, 0, outerMax), 35);
+  setBar('rearBar', clamp(outerBase - po, 0, outerMax), 35);
+  setBar('rightBar', clamp(outerBase - ro, 0, outerMax), 35);
+  setBar('leftBar', clamp(outerBase + ro, 0, outerMax), 35);
+  setBar('centerBar', Number(tel.thr || 0), 35);
+}
+function setBar(id, value, max){ els[id].style.height = `${clamp(value/max*100,0,100)}%`; els[id].style.background = value > max*.75 ? 'var(--warn)' : 'var(--accent)'; }
+
+async function enableSensors(){
+  try{
+    if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
+      const p = await DeviceOrientationEvent.requestPermission();
+      if(p !== 'granted') throw new Error('permission denied');
+    }
+    window.addEventListener('deviceorientation', e => {
+      phone.roll = Number(e.gamma || 0);
+      phone.pitch = Number(e.beta || 0);
+      phone.yaw = Number(e.alpha || 0);
+      lastSensorMs = Date.now();
+      sensorsEnabled = true;
+      updateUi();
+    }, true);
+    sensorsEnabled = true;
+    log('Phone orientation enabled');
+  }catch(err){ log('Sensor failed: ' + err.message); }
+}
+
+async function connectSerial(){
+  if(!('serial' in navigator)){ alert('Use Chrome/Edge with Web Serial support.'); return; }
+  port = await navigator.serial.requestPort();
+  await port.open({ baudRate:115200 });
+  writer = port.writable.getWriter();
+  reader = port.readable.getReader();
+  serialConnected = true;
+  updateUi();
+  log('Uno connected');
+  await sendSerial('HELLO');
+  readSerialLoop();
+}
+async function readSerialLoop(){
+  const dec = new TextDecoder();
+  try{
+    while(serialConnected){
+      const {value, done} = await reader.read();
+      if(done) break;
+      rx += dec.decode(value, {stream:true});
+      let i;
+      while((i = rx.indexOf('\n')) >= 0){
+        const line = rx.slice(0,i).trim(); rx = rx.slice(i+1);
+        handleSerialLine(line);
+      }
+    }
+  }catch(err){ log('Serial stopped: ' + err.message); }
+  serialConnected = false; updateUi();
+}
+function handleSerialLine(line){
+  if(!line) return;
+  if(line.startsWith('TEL ')){ tel = {...tel, ...parsePairs(line)}; updateUi(); }
+  else log(line);
+}
+
+function cloudSet(name, value){
+  if(!ws || ws.readyState !== WebSocket.OPEN) return;
+  ws.send(JSON.stringify({method:'set', name:CLOUD(name), value:String(Math.round(Number(value)))}) + '\n');
+}
+function connectCloud(){
+  const projectId = els.projectId.value.trim();
+  ws = new WebSocket('wss://clouddata.turbowarp.org');
+  ws.onopen = () => {
+    cloudConnected = true; updateUi();
+    cloudConnectedAt = Date.now();
+    ws.send(JSON.stringify({method:'handshake', user:'edf_phone_' + Math.floor(Math.random()*999999), project_id:projectId}) + '\n');
+    log('Cloud connected');
+  };
+  ws.onclose = e => { cloudConnected = false; updateUi(); log(`Cloud closed ${e.code}`); };
+  ws.onerror = () => log('Cloud error');
+  ws.onmessage = e => {
+    for(const line of String(e.data).split('\n')){
+      if(!line.trim()) continue;
+      try{ handleCloudMessage(JSON.parse(line)); }catch{}
+    }
+  };
+}
+function cleanCloudName(name){ return String(name || '').replace(/^☁\s*/, ''); }
+function handleCloudMessage(msg){
+  if(msg.method !== 'set') return;
+  const name = cleanCloudName(msg.name), value = Number(msg.value || 0);
+  const oldValue = lastCloudCmd[name];
+  lastCloudCmd[name] = value;
+  applyPcCommand(name, value, oldValue);
+}
+function applyPcCommand(name, value, oldValue){
+  const pulseCommands = new Set(['cmdStop','cmdArm','cmdClearAbort','cmdSetLevel','cmdLimitsSeq','cmdPidSeq']);
+  if(pulseCommands.has(name)){
+    if(oldValue === undefined && Date.now() - cloudConnectedAt < 1200) return;
+    if(value === oldValue) return;
+  }
+  if(name === 'cmdStop' && value > 0){ els.pcState.textContent = 'STOP'; sendSerial('STOP'); }
+  if(name === 'cmdArm' && value > 0){ els.pcState.textContent = 'ARM'; sendSerial('ARM 4279'); }
+  if(name === 'cmdClearAbort' && value > 0){ els.pcState.textContent = 'Clear abort'; sendSerial('CLEARABORT'); }
+  if(name === 'cmdSetLevel' && value > 0){ els.pcState.textContent = 'Set level'; sendSerial(`SET LEVEL ${phone.roll.toFixed(2)} ${phone.pitch.toFixed(2)} ${phone.yaw.toFixed(2)}`); }
+  if(name === 'cmdThrottle'){ els.thrSlider.value = clamp(value,0,35); els.thrLabel.textContent = `${els.thrSlider.value}%`; sendSerial(`SET THR ${els.thrSlider.value}`); }
+  if(name === 'cmdOuterMax'){ els.outerSlider.value = clamp(value,0,30); els.outerLabel.textContent = `${els.outerSlider.value}%`; sendSerial(`SET OUTERMAX ${els.outerSlider.value}`); }
+  if(name === 'cmdLimitsSeq') sendSerial(`SET LIMIT ${Number(lastCloudCmd.cmdTiltLimit || 25)} ${Number(lastCloudCmd.cmdYawLimit || 50)}`);
+  if(name === 'cmdPidSeq'){
+    sendSerial(`SET PID ROLL ${num('cmdRollAngleP',200)/100} ${num('cmdRollRateP',30)/1000} ${num('cmdRollRateI',0)/1000} ${num('cmdRollRateD',10)/10000}`);
+    sendSerial(`SET PID PITCH ${num('cmdPitchAngleP',200)/100} ${num('cmdPitchRateP',30)/1000} ${num('cmdPitchRateI',0)/1000} ${num('cmdPitchRateD',10)/10000}`);
+  }
+}
+function num(name, fallback){ return Number(lastCloudCmd[name] ?? fallback); }
+function publishTelemetry(){
+  if(!cloudConnected) return;
+  seq++;
+  cloudSet('seq', seq);
+  cloudSet('rollCdeg', Number(tel.roll || phone.roll) * 100);
+  cloudSet('pitchCdeg', Number(tel.pitch || phone.pitch) * 100);
+  cloudSet('yawCdeg', Number(tel.yaw || phone.yaw) * 100);
+  cloudSet('yawErrCdeg', Number(tel.yawErr || 0) * 100);
+  cloudSet('armed', Number(tel.armed || 0));
+  cloudSet('abort', Number(tel.abort || 0));
+  cloudSet('phoneLive', Date.now() - lastSensorMs < 350 ? 1 : 0);
+  cloudSet('thr', Number(tel.thr || 0));
+  cloudSet('outerMax', Number(tel.outerMax || 18));
+  cloudSet('rollOutC', Number(tel.ro || 0) * 100);
+  cloudSet('pitchOutC', Number(tel.po || 0) * 100);
+}
+
+els.sensorBtn.onclick = enableSensors;
+els.serialBtn.onclick = connectSerial;
+els.cloudBtn.onclick = connectCloud;
+els.armBtn.onclick = () => sendSerial('ARM 4279');
+els.stopBtn.onclick = () => sendSerial('STOP');
+els.clearAbortBtn.onclick = () => sendSerial('CLEARABORT');
+els.levelBtn.onclick = () => sendSerial(`SET LEVEL ${phone.roll.toFixed(2)} ${phone.pitch.toFixed(2)} ${phone.yaw.toFixed(2)}`);
+els.thrSlider.oninput = () => { els.thrLabel.textContent = `${els.thrSlider.value}%`; sendSerial(`SET THR ${els.thrSlider.value}`); };
+els.outerSlider.oninput = () => { els.outerLabel.textContent = `${els.outerSlider.value}%`; sendSerial(`SET OUTERMAX ${els.outerSlider.value}`); };
+setInterval(() => { if(serialConnected && sensorsEnabled) sendSerial(`ATT ${phone.roll.toFixed(2)} ${phone.pitch.toFixed(2)} ${phone.yaw.toFixed(2)}`, true); }, 20);
+setInterval(() => { if(serialConnected) sendSerial(`SET THR ${els.thrSlider.value}`, true); }, 120);
+setInterval(publishTelemetry, 200);
+updateUi();
+</script>
+</body>
+</html>
