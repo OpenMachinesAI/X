@@ -40,6 +40,7 @@
     <div class="status">
       <div class="pill"><span>Phone sensors</span><strong id="sensorState">Off</strong></div>
       <div class="pill"><span>Uno serial</span><strong id="serialState">Offline</strong></div>
+      <div class="pill"><span>USB mode</span><strong id="usbMode">None</strong></div>
       <div class="pill"><span>Cloud</span><strong id="cloudState">Offline</strong></div>
       <div class="pill"><span>Controller</span><strong id="armState">Disarmed</strong></div>
       <div class="pill"><span>Abort</span><strong id="abortState">None</strong></div>
@@ -83,7 +84,7 @@
       <button id="levelBtn">Set Current Pose Upright</button>
       <button id="clearAbortBtn">Clear Abort</button>
     </div>
-    <p class="small">PC commands come through the cloud, but the phone still sends attitude directly to the Uno over USB. The fast motor safety logic stays on the Uno.</p>
+    <p id="usbHint" class="small">PC commands come through the cloud, but the phone sends attitude directly to the Uno over USB. If Web Serial finds no devices, this page tries a WebUSB CDC fallback.</p>
   </section>
 
   <section>
@@ -107,7 +108,7 @@
 const els = Object.fromEntries([...document.querySelectorAll('[id]')].map(el => [el.id, el]));
 const CLOUD = name => `☁ ${name}`;
 const abortNames = ['None','Operator STOP','Phone timeout','Command timeout','Tilt limit','Yaw drift > 50 deg'];
-let port, reader, writer, ws;
+let port, reader, writer, ws, usbDevice, usbInEndpoint = 0, usbOutEndpoint = 0, usbInterfaceNumber = -1, usbControlInterfaceNumber = -1;
 let serialConnected = false, cloudConnected = false, sensorsEnabled = false;
 let rx = '', seq = 0, lastSensorMs = 0, lastCloudCmd = {};
 let cloudConnectedAt = 0;
@@ -115,6 +116,7 @@ let phone = { roll:0, pitch:0, yaw:0 };
 let tel = { armed:0, abort:0, roll:0, pitch:0, yaw:0, yawErr:0, ro:0, po:0, thr:0, outerMax:18 };
 let sensorStats = { orientation:0, motion:0, source:'None', rawOrientation:'--', rawMotion:'--' };
 let lastTelemetryMs = 0;
+let usbMode = 'None';
 
 function log(s){ const t = new Date().toLocaleTimeString(); els.log.textContent += `[${t}] ${s}\n`; els.log.scrollTop = els.log.scrollHeight; }
 function clamp(v, lo, hi){ return Math.min(hi, Math.max(lo, v)); }
@@ -134,6 +136,7 @@ function updateUi(){
   const roll = attitude.roll, pitch = attitude.pitch, yaw = attitude.yaw;
   els.sensorState.textContent = sensorsEnabled ? (Date.now() - lastSensorMs < 350 ? 'Live' : 'Waiting') : 'Off';
   els.serialState.textContent = serialConnected ? 'Connected' : 'Offline';
+  els.usbMode.textContent = usbMode;
   els.cloudState.textContent = cloudConnected ? 'Connected' : 'Offline';
   els.armState.textContent = tel.armed == 1 ? 'Armed' : 'Disarmed';
   els.abortState.textContent = abortNames[Number(tel.abort || 0)] || `Code ${tel.abort}`;
@@ -238,16 +241,145 @@ function fmt(v){
 }
 
 async function connectSerial(){
-  if(!('serial' in navigator)){ alert('Use Chrome/Edge with Web Serial support.'); return; }
-  port = await navigator.serial.requestPort();
-  await port.open({ baudRate:115200 });
-  writer = port.writable.getWriter();
-  reader = port.readable.getReader();
-  serialConnected = true;
+  try{
+    if(!('serial' in navigator)) throw new Error('Web Serial is not available');
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate:115200 });
+    writer = port.writable.getWriter();
+    reader = port.readable.getReader();
+    serialConnected = true;
+    usbMode = 'Web Serial';
+    updateUi();
+    log('Uno connected with Web Serial');
+    await sendSerial('HELLO');
+    readSerialLoop();
+  }catch(err){
+    log('Web Serial failed: ' + err.message);
+    await connectWebUsbCdc();
+  }
+}
+
+async function connectWebUsbCdc(){
+  if(!('usb' in navigator)){
+    usbMode = 'Unavailable';
+    els.usbHint.textContent = 'This Android browser has neither Web Serial nor WebUSB available. Try Chrome, a data-capable OTG adapter, or a different Arduino USB chipset.';
+    els.usbHint.style.color = 'var(--danger)';
+    updateUi();
+    return;
+  }
+
+  const filters = [
+    { vendorId: 0x2341 }, // Arduino
+    { vendorId: 0x2A03 }, // Arduino.org
+    { vendorId: 0x239A }, // Adafruit boards
+    { vendorId: 0x1A86 }, // CH340 clones, may need native driver support
+    { vendorId: 0x0403 }, // FTDI
+    { vendorId: 0x10C4 }  // CP210x
+  ];
+
+  try{
+    usbDevice = await navigator.usb.requestDevice({ filters });
+    await usbDevice.open();
+    if(!usbDevice.configuration) await usbDevice.selectConfiguration(1);
+
+    const endpoints = findUsbSerialEndpoints(usbDevice);
+    if(!endpoints) throw new Error('No CDC-style bulk IN/OUT endpoints found');
+
+    usbInterfaceNumber = endpoints.dataInterface;
+    usbControlInterfaceNumber = endpoints.controlInterface;
+    usbInEndpoint = endpoints.inEndpoint;
+    usbOutEndpoint = endpoints.outEndpoint;
+
+    if(usbDevice.configuration.interfaces.some(i => i.interfaceNumber === usbControlInterfaceNumber)){
+      await usbDevice.claimInterface(usbControlInterfaceNumber);
+    }
+    if(usbInterfaceNumber !== usbControlInterfaceNumber){
+      await usbDevice.claimInterface(usbInterfaceNumber);
+    }
+
+    await configureCdcLineCoding();
+
+    writer = {
+      write: bytes => usbDevice.transferOut(usbOutEndpoint, bytes)
+    };
+    serialConnected = true;
+    usbMode = 'WebUSB CDC';
+    els.usbHint.textContent = 'Connected by WebUSB fallback. This works only for USB serial chips that expose CDC-style endpoints to Chrome.';
+    els.usbHint.style.color = 'var(--accent)';
+    updateUi();
+    log('Uno connected with WebUSB CDC fallback');
+    await sendSerial('HELLO');
+    readWebUsbLoop();
+  }catch(err){
+    serialConnected = false;
+    usbMode = 'No compatible USB';
+    els.usbHint.textContent = 'Android still cannot see a compatible Arduino USB device. Check that the cable is data-capable, OTG is supported, the phone is host, and the board uses a browser-visible USB serial chip.';
+    els.usbHint.style.color = 'var(--danger)';
+    updateUi();
+    log('WebUSB failed: ' + err.message);
+  }
+}
+
+function findUsbSerialEndpoints(device){
+  let controlInterface = -1;
+  for(const iface of device.configuration.interfaces){
+    for(const alt of iface.alternates){
+      if(alt.interfaceClass === 0x02) controlInterface = iface.interfaceNumber;
+    }
+  }
+
+  for(const iface of device.configuration.interfaces){
+    for(const alt of iface.alternates){
+      const inEp = alt.endpoints.find(ep => ep.direction === 'in' && (ep.type === 'bulk' || ep.type === 'interrupt'));
+      const outEp = alt.endpoints.find(ep => ep.direction === 'out' && ep.type === 'bulk');
+      if(inEp && outEp){
+        return {
+          controlInterface: controlInterface >= 0 ? controlInterface : iface.interfaceNumber,
+          dataInterface: iface.interfaceNumber,
+          inEndpoint: inEp.endpointNumber,
+          outEndpoint: outEp.endpointNumber
+        };
+      }
+    }
+  }
+  return null;
+}
+
+async function configureCdcLineCoding(){
+  const lineCoding = new ArrayBuffer(7);
+  const view = new DataView(lineCoding);
+  view.setUint32(0, 115200, true);
+  view.setUint8(4, 0); // 1 stop bit
+  view.setUint8(5, 0); // no parity
+  view.setUint8(6, 8); // 8 data bits
+  try{
+    await usbDevice.controlTransferOut({ requestType:'class', recipient:'interface', request:0x20, value:0, index:usbControlInterfaceNumber }, lineCoding);
+    await usbDevice.controlTransferOut({ requestType:'class', recipient:'interface', request:0x22, value:0x03, index:usbControlInterfaceNumber });
+  }catch(err){
+    log('CDC setup warning: ' + err.message);
+  }
+}
+
+async function readWebUsbLoop(){
+  const dec = new TextDecoder();
+  try{
+    while(serialConnected && usbDevice){
+      const result = await usbDevice.transferIn(usbInEndpoint, 64);
+      if(result.data){
+        rx += dec.decode(result.data, {stream:true});
+        let i;
+        while((i = rx.indexOf('\n')) >= 0){
+          const line = rx.slice(0,i).trim();
+          rx = rx.slice(i+1);
+          handleSerialLine(line);
+        }
+      }
+    }
+  }catch(err){
+    log('WebUSB read stopped: ' + err.message);
+  }
+  serialConnected = false;
   updateUi();
-  log('Uno connected');
-  await sendSerial('HELLO');
-  readSerialLoop();
 }
 async function readSerialLoop(){
   const dec = new TextDecoder();
