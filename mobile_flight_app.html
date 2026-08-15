@@ -68,6 +68,7 @@
     <div class="status">
       <div class="pill"><span>Sensor source</span><strong id="sensorMode">None</strong></div>
       <div class="pill"><span>Events</span><strong id="eventRead">O:0 M:0</strong></div>
+      <div class="pill"><span>Converted phone degrees</span><strong id="phoneDegrees">R:0.0 P:0.0 Y:0.0</strong></div>
       <div class="pill"><span>Raw orientation</span><strong id="rawOrientation">--</strong></div>
       <div class="pill"><span>Raw motion</span><strong id="rawMotion">--</strong></div>
     </div>
@@ -113,21 +114,33 @@ let cloudConnectedAt = 0;
 let phone = { roll:0, pitch:0, yaw:0 };
 let tel = { armed:0, abort:0, roll:0, pitch:0, yaw:0, yawErr:0, ro:0, po:0, thr:0, outerMax:18 };
 let sensorStats = { orientation:0, motion:0, source:'None', rawOrientation:'--', rawMotion:'--' };
+let lastTelemetryMs = 0;
 
 function log(s){ const t = new Date().toLocaleTimeString(); els.log.textContent += `[${t}] ${s}\n`; els.log.scrollTop = els.log.scrollHeight; }
 function clamp(v, lo, hi){ return Math.min(hi, Math.max(lo, v)); }
 async function sendSerial(line, quiet=false){ if(!writer) return; await writer.write(new TextEncoder().encode(line + '\n')); if(!quiet) log('> Uno ' + line); }
 function parsePairs(line){ const out={}; for(const p of line.trim().split(/\s+/).slice(1)){ const i=p.indexOf('='); if(i>0) out[p.slice(0,i)] = p.slice(i+1); } return out; }
+function liveAttitude(){
+  const useUnoTelemetry = serialConnected && Date.now() - lastTelemetryMs < 350;
+  return {
+    roll: useUnoTelemetry ? Number(tel.roll || 0) : phone.roll,
+    pitch: useUnoTelemetry ? Number(tel.pitch || 0) : phone.pitch,
+    yaw: useUnoTelemetry ? Number(tel.yaw || 0) : phone.yaw,
+    source: useUnoTelemetry ? 'Uno telemetry' : sensorStats.source
+  };
+}
 function updateUi(){
-  const roll = Number(tel.roll ?? phone.roll), pitch = Number(tel.pitch ?? phone.pitch), yaw = Number(tel.yaw ?? phone.yaw);
+  const attitude = liveAttitude();
+  const roll = attitude.roll, pitch = attitude.pitch, yaw = attitude.yaw;
   els.sensorState.textContent = sensorsEnabled ? (Date.now() - lastSensorMs < 350 ? 'Live' : 'Waiting') : 'Off';
   els.serialState.textContent = serialConnected ? 'Connected' : 'Offline';
   els.cloudState.textContent = cloudConnected ? 'Connected' : 'Offline';
   els.armState.textContent = tel.armed == 1 ? 'Armed' : 'Disarmed';
   els.abortState.textContent = abortNames[Number(tel.abort || 0)] || `Code ${tel.abort}`;
   els.abortState.style.color = Number(tel.abort || 0) ? 'var(--danger)' : 'var(--accent)';
-  els.sensorMode.textContent = sensorStats.source;
+  els.sensorMode.textContent = attitude.source;
   els.eventRead.textContent = `O:${sensorStats.orientation} M:${sensorStats.motion}`;
+  els.phoneDegrees.textContent = `R:${phone.roll.toFixed(1)} P:${phone.pitch.toFixed(1)} Y:${phone.yaw.toFixed(1)}`;
   els.rawOrientation.textContent = sensorStats.rawOrientation;
   els.rawMotion.textContent = sensorStats.rawMotion;
   if(!window.isSecureContext){
@@ -254,7 +267,7 @@ async function readSerialLoop(){
 }
 function handleSerialLine(line){
   if(!line) return;
-  if(line.startsWith('TEL ')){ tel = {...tel, ...parsePairs(line)}; updateUi(); }
+  if(line.startsWith('TEL ')){ tel = {...tel, ...parsePairs(line)}; lastTelemetryMs = Date.now(); updateUi(); }
   else log(line);
 }
 
@@ -309,11 +322,12 @@ function applyPcCommand(name, value, oldValue){
 function num(name, fallback){ return Number(lastCloudCmd[name] ?? fallback); }
 function publishTelemetry(){
   if(!cloudConnected) return;
+  const attitude = liveAttitude();
   seq++;
   cloudSet('seq', seq);
-  cloudSet('rollCdeg', Number(tel.roll || phone.roll) * 100);
-  cloudSet('pitchCdeg', Number(tel.pitch || phone.pitch) * 100);
-  cloudSet('yawCdeg', Number(tel.yaw || phone.yaw) * 100);
+  cloudSet('rollCdeg', attitude.roll * 100);
+  cloudSet('pitchCdeg', attitude.pitch * 100);
+  cloudSet('yawCdeg', attitude.yaw * 100);
   cloudSet('yawErrCdeg', Number(tel.yawErr || 0) * 100);
   cloudSet('armed', Number(tel.armed || 0));
   cloudSet('abort', Number(tel.abort || 0));
