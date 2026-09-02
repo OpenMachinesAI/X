@@ -753,56 +753,72 @@
      NAME SPLITTING
      ========================================== */
 
-  function splitName(fullName) {
+function splitName(fullName) {
 
-    const cleaned =
-      String(fullName || '')
-        .trim()
-        .replace(/\s+/g, ' ');
+  /*
+    Do NOT trim yet.
 
-    if (!cleaned) {
+    CSV imported names use a TAB as the exact separator
+    between the first/preferred-name field and last-name field.
+  */
+  const raw =
+    String(fullName ?? '');
 
-      return {
-        first: '',
-        last: ''
-      };
-    }
-
-    /*
-      CSV imported names use a tab between
-      preferred/first and last name.
-
-      This preserves multi-word first names and
-      multi-word surnames correctly.
-    */
-
-    if (cleaned.includes('\t')) {
-
-      const pieces =
-        cleaned.split('\t');
-
-      return {
-        first: pieces[0] || '',
-        last: pieces.slice(1).join(' ').trim()
-      };
-    }
-
-    /*
-      Manually-entered name fallback:
-      first word = first name
-      everything else = surname
-    */
-
-    const parts =
-      cleaned.split(' ');
-
+  if (!raw.trim()) {
     return {
-      first: parts.shift() || '',
-      last: parts.join(' ')
+      first: '',
+      last: ''
     };
   }
 
+  /*
+    CSV IMPORTED NAME
 
+    Everything before the TAB is the first/preferred name.
+    Everything after the TAB is the last name.
+
+    No guessing or automatic formatting.
+  */
+  if (raw.includes('\t')) {
+
+    const separatorIndex =
+      raw.indexOf('\t');
+
+    return {
+      first:
+        raw
+          .slice(0, separatorIndex)
+          .trim(),
+
+      last:
+        raw
+          .slice(separatorIndex + 1)
+          .trim()
+    };
+  }
+
+  /*
+    MANUAL ENTRY ONLY
+
+    Manual entry does not provide separate fields,
+    so first word = first name and remaining words = last name.
+  */
+  const cleaned =
+    raw
+      .trim()
+      .replace(/\s+/g, ' ');
+
+  const parts =
+    cleaned.split(' ');
+
+  return {
+    first:
+      parts.shift() || '',
+
+    last:
+      parts.join(' ')
+  };
+}
   /* ==========================================
      LABEL SLOT MANAGEMENT
      ========================================== */
@@ -1071,220 +1087,182 @@
 
 
   /* ==========================================
-     CSV IMPORT
+     CSV STATUS
      ========================================== */
-
-  function importCSVText(csvText) {
-
-    const rows =
-      parseCSV(csvText);
-
-    if (rows.length < 2) {
-
-      throw new Error(
-        'The CSV does not contain any data rows.'
-      );
-    }
-
-
-    const headers =
-      rows[0].map(
-        normalizeCSVHeader
-      );
-
-
-    const preferredIndex =
-      headers.indexOf(
-        'preferred name'
-      );
-
-    const firstIndex =
-      headers.indexOf(
-        'first name'
-      );
-
-    const lastIndex =
-      headers.indexOf(
-        'last name'
-      );
-
-
-    if (
-      preferredIndex === -1 &&
-      firstIndex === -1
-    ) {
-
-      throw new Error(
-        'Could not find a Preferred Name or First Name column.'
-      );
-    }
-
-
-    if (
-      lastIndex === -1
-    ) {
-
-      throw new Error(
-        'Could not find a Last Name column.'
-      );
-    }
-
-
-    const importedNames = [];
-
-
-    for (
-      let rowIndex = 1;
-      rowIndex < rows.length;
-      rowIndex++
-    ) {
-
-      const row =
-        rows[rowIndex];
-
-
-      const preferred =
-        preferredIndex !== -1
-          ? String(
-              row[preferredIndex] || ''
-            ).trim()
-          : '';
-
-
-      const first =
-        firstIndex !== -1
-          ? String(
-              row[firstIndex] || ''
-            ).trim()
-          : '';
-
-
-      const last =
-        String(
-          row[lastIndex] || ''
-        ).trim();
-
-
-      /*
-        Preferred Name wins.
-
-        If blank:
-        First Name is used instead.
-      */
-
-      const displayFirst =
-        preferred || first;
-
-
-      /*
-        Skip completely blank rows.
-      */
-
-      if (
-        !displayFirst &&
-        !last
-      ) {
-        continue;
-      }
-
-
-      /*
-        Tab is used internally to keep the two
-        sides separate.
-
-        Example:
-          "Nadine\tLoewen"
-
-        That means a surname like:
-          "Van Buren"
-
-        remains entirely on the second line.
-      */
-
-      const internalName =
-        `${displayFirst}\t${last}`;
-
-
-      importedNames.push(
-        internalName
-      );
-    }
-
-
-    if (
-      importedNames.length === 0
-    ) {
-
-      throw new Error(
-        'No usable names were found in the CSV.'
-      );
-    }
-
-
-    /*
-      Fill available blank positions first.
-      When full, additional pages are created.
-    */
-
-    importedNames.forEach(name => {
-
-      const emptyIndex =
-        labels.findIndex(
-          value => !value
-        );
-
-
-      if (
-        emptyIndex !== -1
-      ) {
-
-        labels[emptyIndex] =
-          name;
-
-      } else {
-
-        labels.push(name);
-      }
-    });
-
-
-    normalizeLabels();
-
-    render();
-
-    updateNamesList();
-
-
-    return importedNames.length;
-  }
-
-
-  function setCSVStatus(
-    message,
-    type = ''
-  ) {
-
-    const status =
-      document.getElementById(
-        'csvImportStatus'
-      );
-
-    status.textContent =
-      message;
-
-    status.classList.remove(
-      'success',
-      'error'
+function setCSVStatus(message, type = '') {
+
+  const status =
+    document.getElementById(
+      'csvImportStatus'
     );
 
-    if (type) {
+  if (!status) return;
 
-      status.classList.add(
-        type
-      );
-    }
+  status.textContent = message;
+
+  status.classList.remove(
+    'success',
+    'error'
+  );
+
+  if (type) {
+    status.classList.add(type);
+  }
+}
+  /* ==========================================
+   CSV IMPORT
+   ========================================== */
+
+function importCSVText(csvText) {
+
+  const rows =
+    parseCSV(csvText);
+
+  if (rows.length < 2) {
+    throw new Error(
+      'The CSV does not contain any data rows.'
+    );
   }
 
+  const headers =
+    rows[0].map(
+      normalizeCSVHeader
+    );
+
+  const preferredIndex =
+    headers.indexOf(
+      'preferred name'
+    );
+
+  const firstIndex =
+    headers.indexOf(
+      'first name'
+    );
+
+  const lastIndex =
+    headers.indexOf(
+      'last name'
+    );
+
+  if (
+    preferredIndex === -1 &&
+    firstIndex === -1
+  ) {
+    throw new Error(
+      'Could not find a Preferred Name or First Name column.'
+    );
+  }
+
+  if (lastIndex === -1) {
+    throw new Error(
+      'Could not find a Last Name column.'
+    );
+  }
+
+  const importedNames = [];
+
+  for (
+    let rowIndex = 1;
+    rowIndex < rows.length;
+    rowIndex++
+  ) {
+
+    const row =
+      rows[rowIndex];
+
+    const preferred =
+      preferredIndex !== -1
+        ? String(
+            row[preferredIndex] ?? ''
+          ).trim()
+        : '';
+
+    const first =
+      firstIndex !== -1
+        ? String(
+            row[firstIndex] ?? ''
+          ).trim()
+        : '';
+
+    const last =
+      String(
+        row[lastIndex] ?? ''
+      ).trim();
+
+    /*
+      Preferred Name is used exactly as supplied.
+
+      If Preferred Name is blank,
+      use First Name instead.
+    */
+    const displayFirst =
+      preferred !== ''
+        ? preferred
+        : first;
+
+    /*
+      Ignore completely blank rows.
+    */
+    if (
+      displayFirst === '' &&
+      last === ''
+    ) {
+      continue;
+    }
+
+    /*
+      CSV already tells us exactly what belongs
+      on each line.
+
+      No name guessing.
+      No splitting on spaces.
+      No reformatting.
+
+      Internal format:
+        first[TAB]last
+    */
+    const internalName =
+      `${displayFirst}\t${last}`;
+
+    importedNames.push(
+      internalName
+    );
+  }
+
+  if (
+    importedNames.length === 0
+  ) {
+    throw new Error(
+      'No usable names were found in the CSV.'
+    );
+  }
+
+  /*
+    Fill blank label slots first.
+    Add more pages automatically if necessary.
+  */
+  importedNames.forEach(name => {
+
+    const emptyIndex =
+      labels.findIndex(
+        value => !value
+      );
+
+    if (emptyIndex !== -1) {
+      labels[emptyIndex] = name;
+    } else {
+      labels.push(name);
+    }
+  });
+
+  normalizeLabels();
+
+  render();
+
+  updateNamesList();
+
+  return importedNames.length;
+}
 
   function importCSVFile(file) {
 
