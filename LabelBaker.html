@@ -4,12 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Label Baker — MileZero Tours</title>
+
   <style>
     :root {
       --ink: #1a2032;
       --accent: #2877d8;
       --muted: #6b7585;
       --line: #d4dae6;
+      --preview-scale: 1;
     }
 
     *, *::before, *::after {
@@ -43,6 +45,7 @@
       flex-direction: column;
       overflow: hidden;
       box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
+      flex-shrink: 0;
     }
 
     .sidebar-header {
@@ -183,14 +186,19 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      min-width: 0;
     }
 
     .preview-area {
       flex: 1;
-      overflow-y: auto;
+      overflow: auto;
       padding: 20px;
     }
 
+    /*
+      The page always remains physically 8.5" × 11".
+      CSS zoom only changes how large it looks on screen.
+    */
     .page {
       width: 8.5in;
       height: 11in;
@@ -204,12 +212,19 @@
       padding: 0;
       page-break-after: always;
       position: relative;
+      zoom: var(--preview-scale);
     }
 
-    .page:last-child {
+    .page:last-of-type {
       margin-bottom: 20px;
     }
 
+    /*
+      Screen-only slot border.
+
+      This makes all 10 spaces easy to see while arranging labels.
+      It is removed completely in @media print below.
+    */
     .label {
       width: 100%;
       height: 100%;
@@ -218,7 +233,9 @@
       align-items: center;
       justify-content: center;
       text-align: center;
-      border: none;
+
+      border: 1px solid #c9ced8;
+
       padding: 0.12in 0.2in;
       position: relative;
       background: white;
@@ -232,18 +249,18 @@
     }
 
     .label.dragging {
-      opacity: 0.5;
+      opacity: 0.45;
       background: #f9f9f9;
     }
 
     .label.drag-over {
-      background: #f0f3f8;
-      box-shadow: inset 0 0 8px rgba(40, 119, 216, 0.3);
+      background: #eef5ff;
+      box-shadow: inset 0 0 0 3px rgba(40, 119, 216, 0.35);
     }
 
     .label-logo {
       height: 0.55in;
-      margin-bottom: 0.16in;
+      margin-bottom: 0.12in;
       flex-shrink: 0;
     }
 
@@ -251,31 +268,95 @@
       height: 100%;
       width: auto;
       object-fit: contain;
+      pointer-events: none;
+      user-select: none;
     }
 
+    /*
+      Name is now split over two lines:
+        First line = first name, bold
+        Second line = remaining/last name, lighter
+    */
     .label-name {
       font-size: 50px;
-      font-weight: 700;
-      color: #111;
-      margin: 0;
-      line-height: 1.1;
-      word-wrap: break-word;
+      line-height: 1;
       max-width: 3.6in;
+      width: 100%;
       outline: none;
-      border-radius: 3px;
       padding: 0 0.1in;
-      transition: background 0.2s;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-width: 0;
     }
 
-    .label-name:hover {
+    .label-name-part {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      text-align: center;
+      white-space: nowrap;
+      overflow: visible;
+      outline: none;
+      border-radius: 3px;
+    }
+
+    .label-first-name {
+      font-size: 1em;
+      font-weight: 750;
+      line-height: 1.03;
+      color: #111;
+    }
+
+    .label-last-name {
+      font-size: 0.72em;
+      font-weight: 450;
+      line-height: 1.05;
+      color: #333;
+      margin-top: 0.06in;
+    }
+
+    .label-name-part[contenteditable="true"]:hover {
       background: #f5f5f5;
     }
 
-    .label-name:focus {
+    .label-name-part[contenteditable="true"]:focus {
       background: #e3f2fd;
       outline: 2px solid var(--accent);
     }
 
+    /*
+      Drop target for intentionally creating another sheet.
+    */
+    .new-page-drop-zone {
+      width: min(8.5in, 100%);
+      min-height: 80px;
+      margin: 4px auto 25px;
+      border: 2px dashed #aeb7c5;
+      border-radius: 10px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 18px;
+      font-size: 13px;
+      font-weight: 600;
+      transition:
+        border-color 0.2s,
+        background 0.2s,
+        color 0.2s,
+        transform 0.2s;
+    }
+
+    .new-page-drop-zone.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: #eef5ff;
+      transform: scale(1.01);
+    }
 
     .empty-message {
       text-align: center;
@@ -318,6 +399,7 @@
       font-size: 13px;
       font-weight: 600;
       gap: 20px;
+      flex-shrink: 0;
     }
 
     .topbar-left {
@@ -374,6 +456,10 @@
         color-adjust: exact !important;
       }
 
+      :root {
+        --preview-scale: 1 !important;
+      }
+
       body {
         background: white;
         padding: 0;
@@ -388,7 +474,10 @@
         width: 100%;
       }
 
-      .sidebar, .topbar, .empty-message {
+      .sidebar,
+      .topbar,
+      .empty-message,
+      .new-page-drop-zone {
         display: none !important;
       }
 
@@ -430,42 +519,69 @@
         padding: 0;
         border: none;
         background: white;
+        zoom: 1 !important;
       }
 
-      .page:last-child {
+      .page:last-of-type {
         page-break-after: auto;
       }
 
+      /*
+        No slot borders on the actual printed sheet.
+      */
       .label {
         page-break-inside: avoid;
-        border: none;
-        overflow: visible;
+        border: none !important;
+        box-shadow: none !important;
+        overflow: hidden;
+      }
+
+      .label-name-part {
+        background: transparent !important;
+        outline: none !important;
       }
     }
   </style>
 </head>
+
 <body>
 
 <div class="topbar" id="topbar">
   <div class="topbar-left" id="topbarText"></div>
+
   <div class="topbar-right">
-    <button class="edit-mode-toggle" id="editModeToggle">Edit Mode</button>
-    <button class="btn-print" id="printBtn">Print / PDF</button>
+    <button class="edit-mode-toggle active" id="editModeToggle">
+      Edit Mode
+    </button>
+
+    <button class="btn-print" id="printBtn">
+      Print / PDF
+    </button>
   </div>
 </div>
 
 <div class="main-container">
+
   <aside class="sidebar">
     <div class="sidebar-header">
       <h2>Names</h2>
+
       <form class="add-name-form" id="addNameForm">
-        <input type="text" id="nameInput" placeholder="Enter name..." autocomplete="off">
+        <input
+          type="text"
+          id="nameInput"
+          placeholder="Enter first and last name..."
+          autocomplete="off"
+        >
+
         <button type="submit">Add Name</button>
       </form>
     </div>
+
     <div class="sidebar-content">
       <div class="names-list" id="namesList"></div>
     </div>
+
     <div class="sidebar-footer">
       <button id="clearAllBtn">Clear All</button>
       <div id="countDisplay"></div>
@@ -477,6 +593,7 @@
       <main id="output"></main>
     </div>
   </div>
+
 </div>
 
 <script>
@@ -484,45 +601,101 @@
   const labelsPerPage = 10;
 
   let labels = [];
-  let editMode = false;
+
+  /*
+    Edit mode is now ON by default.
+  */
+  let editMode = true;
+
   let draggedLabel = null;
 
   function getUrlParams() {
-    const params = new URLSearchParams(window.location.search + window.location.hash.replace(/^#/, '?'));
+    const params = new URLSearchParams(
+      window.location.search +
+      window.location.hash.replace(/^#/, '?')
+    );
+
     const names = [];
 
     let index = 1;
+
     while (params.has(`name${index}`)) {
       const name = params.get(`name${index}`).trim();
-      if (name) names.push(name);
+
+      if (name) {
+        names.push(name);
+      }
+
       index++;
     }
 
     return names;
   }
 
-  // labels[] represents fixed grid slots — '' means the slot is blank.
-  // Keeping blanks as real array entries (rather than just visual filler)
-  // is what lets drag-and-drop swap a name into ANY slot, filled or not,
-  // instead of shifting/reordering everything else.
+  /*
+    Turn:
+      "John Smith"       -> ["John", "Smith"]
+      "Mary Van Buren"   -> ["Mary", "Van Buren"]
+      "David"            -> ["David", ""]
+
+    This means the first word is treated as the first name and
+    everything after it becomes the second line.
+  */
+  function splitName(fullName) {
+    const cleaned = String(fullName || '')
+      .trim()
+      .replace(/\s+/g, ' ');
+
+    if (!cleaned) {
+      return {
+        first: '',
+        last: ''
+      };
+    }
+
+    const parts = cleaned.split(' ');
+
+    return {
+      first: parts.shift() || '',
+      last: parts.join(' ')
+    };
+  }
+
+  /*
+    labels[] represents fixed sheet positions.
+    Blank strings are real empty slots.
+  */
   function padLabels() {
     if (labels.length === 0) return;
+
     const remainder = labels.length % labelsPerPage;
+
     if (remainder !== 0) {
-      labels.push(...Array(labelsPerPage - remainder).fill(''));
+      labels.push(
+        ...Array(labelsPerPage - remainder).fill('')
+      );
     }
   }
 
   function trimTrailingEmptySlots() {
     while (labels.length >= labelsPerPage) {
-      const lastPage = labels.slice(labels.length - labelsPerPage);
-      if (lastPage.every(v => !v)) {
-        labels.splice(labels.length - labelsPerPage, labelsPerPage);
+      const lastPage = labels.slice(
+        labels.length - labelsPerPage
+      );
+
+      if (lastPage.every(value => !value)) {
+        labels.splice(
+          labels.length - labelsPerPage,
+          labelsPerPage
+        );
       } else {
         break;
       }
     }
-    if (labels.every(v => !v)) labels.length = 0;
+
+    if (labels.every(value => !value)) {
+      labels.length = 0;
+    }
   }
 
   function normalizeLabels() {
@@ -531,33 +704,49 @@
   }
 
   function addName(name) {
-    const trimmed = name.trim();
-    if (trimmed) {
-      const emptyIdx = labels.findIndex(v => !v);
-      if (emptyIdx !== -1) {
-        labels[emptyIdx] = trimmed;
-      } else {
-        labels.push(trimmed);
-      }
-      normalizeLabels();
-      render();
-      updateNamesList();
-      document.getElementById('nameInput').value = '';
-      document.getElementById('nameInput').focus();
+    const trimmed = name
+      .trim()
+      .replace(/\s+/g, ' ');
+
+    if (!trimmed) return;
+
+    const emptyIdx = labels.findIndex(value => !value);
+
+    if (emptyIdx !== -1) {
+      labels[emptyIdx] = trimmed;
+    } else {
+      labels.push(trimmed);
     }
+
+    normalizeLabels();
+    render();
+    updateNamesList();
+
+    const input = document.getElementById('nameInput');
+
+    input.value = '';
+    input.focus();
   }
 
   function removeName(index) {
     labels[index] = '';
+
     normalizeLabels();
     render();
     updateNamesList();
   }
 
   function clearAllNames() {
-    const filledCount = labels.filter(v => v).length;
-    if (filledCount > 0 && confirm(`Remove all ${filledCount} name${filledCount !== 1 ? 's' : ''}?`)) {
+    const filledCount = labels.filter(value => value).length;
+
+    if (
+      filledCount > 0 &&
+      confirm(
+        `Remove all ${filledCount} name${filledCount !== 1 ? 's' : ''}?`
+      )
+    ) {
       labels = [];
+
       render();
       updateNamesList();
     }
@@ -566,28 +755,61 @@
   function updateNamesList() {
     const namesList = document.getElementById('namesList');
     const countDisplay = document.getElementById('countDisplay');
-    const filled = labels.map((name, idx) => ({ name, idx })).filter(item => item.name);
+
+    const filled = labels
+      .map((name, idx) => ({
+        name,
+        idx
+      }))
+      .filter(item => item.name);
 
     if (filled.length === 0) {
-      namesList.innerHTML = '<div style="color: var(--muted); font-size: 12px; text-align: center; padding: 20px 10px;">No names added yet</div>';
-      countDisplay.textContent = '';
-    } else {
-      namesList.innerHTML = filled.map(item => `
-        <div class="name-item">
-          <span class="name-item-text">${escapeHtml(item.name)}</span>
-          <button class="name-item-delete" data-index="${item.idx}">Delete</button>
+      namesList.innerHTML = `
+        <div
+          style="
+            color: var(--muted);
+            font-size: 12px;
+            text-align: center;
+            padding: 20px 10px;
+          "
+        >
+          No names added yet
         </div>
-      `).join('');
+      `;
 
-      countDisplay.textContent = `${filled.length} label${filled.length !== 1 ? 's' : ''}`;
+      countDisplay.textContent = '';
+      return;
+    }
 
-      // Add delete listeners
-      document.querySelectorAll('.name-item-delete').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          removeName(parseInt(e.target.dataset.index));
+    namesList.innerHTML = filled
+      .map(item => `
+        <div class="name-item">
+          <span class="name-item-text">
+            ${escapeHtml(item.name)}
+          </span>
+
+          <button
+            class="name-item-delete"
+            data-index="${item.idx}"
+          >
+            Delete
+          </button>
+        </div>
+      `)
+      .join('');
+
+    countDisplay.textContent =
+      `${filled.length} label${filled.length !== 1 ? 's' : ''}`;
+
+    document
+      .querySelectorAll('.name-item-delete')
+      .forEach(btn => {
+        btn.addEventListener('click', e => {
+          removeName(
+            parseInt(e.currentTarget.dataset.index, 10)
+          );
         });
       });
-    }
   }
 
   function escapeHtml(str) {
@@ -601,258 +823,810 @@
   const NAME_MAX_FONT = 50;
   const NAME_MIN_FONT = 14;
 
-  // A long name must never stretch the fixed 4"x2" label — that breaks
-  // alignment on the physical sheet. Instead, shrink the font until the
-  // rendered text actually fits the space left after the logo.
+  /*
+    Shrink the two-line name as a single unit until it fits
+    inside its physical label.
+  */
   function fitLabelName(nameEl) {
     const container = nameEl.closest('.label');
+
     if (!container) return;
 
     const logoEl = container.querySelector('.label-logo');
+
     const containerStyle = getComputedStyle(container);
-    const paddingV = parseFloat(containerStyle.paddingTop) + parseFloat(containerStyle.paddingBottom);
-    const paddingH = parseFloat(containerStyle.paddingLeft) + parseFloat(containerStyle.paddingRight);
+
+    const paddingV =
+      parseFloat(containerStyle.paddingTop) +
+      parseFloat(containerStyle.paddingBottom);
+
+    const paddingH =
+      parseFloat(containerStyle.paddingLeft) +
+      parseFloat(containerStyle.paddingRight);
 
     let logoSpace = 0;
+
     if (logoEl) {
       const logoStyle = getComputedStyle(logoEl);
-      logoSpace = logoEl.offsetHeight + parseFloat(logoStyle.marginBottom);
+
+      logoSpace =
+        logoEl.offsetHeight +
+        parseFloat(logoStyle.marginBottom);
     }
 
-    const availableHeight = container.clientHeight - paddingV - logoSpace;
-    const availableWidth = container.clientWidth - paddingH;
+    const availableHeight =
+      container.clientHeight -
+      paddingV -
+      logoSpace;
+
+    const availableWidth =
+      container.clientWidth -
+      paddingH;
 
     let fontSize = NAME_MAX_FONT;
-    nameEl.style.fontSize = fontSize + 'px';
+
+    nameEl.style.fontSize = `${fontSize}px`;
 
     while (
       fontSize > NAME_MIN_FONT &&
-      (nameEl.scrollHeight > availableHeight || nameEl.scrollWidth > availableWidth)
+      (
+        nameEl.scrollHeight > availableHeight ||
+        nameEl.scrollWidth > availableWidth ||
+        Array.from(
+          nameEl.querySelectorAll('.label-name-part')
+        ).some(part => part.scrollWidth > availableWidth)
+      )
     ) {
-      fontSize -= 1;
-      nameEl.style.fontSize = fontSize + 'px';
+      fontSize--;
+
+      nameEl.style.fontSize = `${fontSize}px`;
     }
   }
 
   function fitAllLabelNames() {
-    document.querySelectorAll('.label-name').forEach(fitLabelName);
+    document
+      .querySelectorAll('.label-name')
+      .forEach(fitLabelName);
+  }
+
+  /*
+    Fit one full 8.5 × 11 sheet vertically and horizontally
+    inside the available preview window.
+
+    This affects SCREEN preview only.
+    Printing remains full-size.
+  */
+  function fitPreviewToScreen() {
+    const preview = document.getElementById('previewArea');
+
+    if (!preview) return;
+
+    /*
+      CSS uses 96px per inch for screen layout:
+        8.5" = 816px
+        11"  = 1056px
+    */
+    const physicalPageWidth = 8.5 * 96;
+    const physicalPageHeight = 11 * 96;
+
+    const horizontalPadding = 40;
+    const verticalPadding = 40;
+
+    const availableWidth = Math.max(
+      100,
+      preview.clientWidth - horizontalPadding
+    );
+
+    const availableHeight = Math.max(
+      100,
+      preview.clientHeight - verticalPadding
+    );
+
+    /*
+      Never enlarge beyond actual CSS size.
+    */
+    const scale = Math.min(
+      1,
+      availableWidth / physicalPageWidth,
+      availableHeight / physicalPageHeight
+    );
+
+    document.documentElement.style.setProperty(
+      '--preview-scale',
+      scale.toFixed(4)
+    );
   }
 
   function renderLabels() {
-    const hasContent = labels.some(v => v);
+    const hasContent = labels.some(value => value);
+
     if (!hasContent) {
       return `
         <div class="empty-message">
           <h1>Welcome to Label Baker</h1>
-          <p>Create printable name tags using the URL parameters below.</p>
-          <p style="font-weight: 600; margin-top: 20px;">Example:</p>
+
+          <p>
+            Add names using the sidebar or URL parameters.
+          </p>
+
+          <p style="font-weight: 600; margin-top: 20px;">
+            Example:
+          </p>
+
           <div class="example-code">
-            LabelBaker.html?name1=David&name2=Alex&name3=Jordan
+            LabelBaker.html?name1=David%20Smith&name2=Alex%20Jones
           </div>
-          <p style="margin-top: 20px;">Parameters: <strong>name1</strong>, <strong>name2</strong>, <strong>name3</strong>, etc.</p>
-          <p style="font-size: 12px; color: var(--muted);">
-            Supports up to any number of names. Automatically creates 10 labels per 8.5" × 11" sheet.
+
+          <p style="margin-top: 20px;">
+            Parameters:
+            <strong>name1</strong>,
+            <strong>name2</strong>,
+            <strong>name3</strong>, etc.
+          </p>
+
+          <p
+            style="
+              font-size: 12px;
+              color: var(--muted);
+            "
+          >
+            Each sheet contains 10 labels on an
+            8.5" × 11" page.
           </p>
         </div>
       `;
     }
 
     let html = '';
-    const totalPages = Math.ceil(labels.length / labelsPerPage);
 
-    for (let pageNum = 0; pageNum < totalPages; pageNum++) {
+    const totalPages = Math.ceil(
+      labels.length / labelsPerPage
+    );
+
+    for (
+      let pageNum = 0;
+      pageNum < totalPages;
+      pageNum++
+    ) {
       html += '<div class="page">';
 
-      const startIdx = pageNum * labelsPerPage;
-      const endIdx = Math.min(startIdx + labelsPerPage, labels.length);
+      const startIdx =
+        pageNum * labelsPerPage;
 
-      for (let i = startIdx; i < endIdx; i++) {
+      const endIdx = Math.min(
+        startIdx + labelsPerPage,
+        labels.length
+      );
+
+      for (
+        let i = startIdx;
+        i < endIdx;
+        i++
+      ) {
         const label = labels[i];
 
         if (label) {
+          const name = splitName(label);
+
           html += `
-            <div class="label ${editMode ? 'draggable' : ''}" data-index="${i}" draggable="${editMode}">
+            <div
+              class="label ${editMode ? 'draggable' : ''}"
+              data-index="${i}"
+              draggable="${editMode}"
+            >
               <div class="label-logo">
-                <img src="${logoSrc}" alt="Mile Zero Tours">
+                <img
+                  src="${logoSrc}"
+                  alt="Mile Zero Tours"
+                  draggable="false"
+                >
               </div>
-              <div class="label-name" contenteditable="${editMode}" data-index="${i}">${escapeHtml(label)}</div>
+
+              <div
+                class="label-name"
+                data-index="${i}"
+              >
+                <div
+                  class="label-name-part label-first-name"
+                  data-part="first"
+                  contenteditable="${editMode}"
+                  spellcheck="false"
+                >${escapeHtml(name.first)}</div>
+
+                <div
+                  class="label-name-part label-last-name"
+                  data-part="last"
+                  contenteditable="${editMode}"
+                  spellcheck="false"
+                >${escapeHtml(name.last)}</div>
+              </div>
             </div>
           `;
         } else {
-          // Blank slot — still a real, addressable position in labels[],
-          // so dragging a name onto it places it exactly here (via drop
-          // handler's swap), not just appended past the end of the list.
-          html += `<div class="label" data-index="${i}" data-empty="true" style="border-color: #f5f5f5;"></div>`;
+          html += `
+            <div
+              class="label"
+              data-index="${i}"
+              data-empty="true"
+            ></div>
+          `;
         }
       }
 
       html += '</div>';
     }
 
+    /*
+      In edit mode the bottom target lets the user create
+      another physical page simply by dragging a tag downward.
+    */
+    if (editMode) {
+      html += `
+        <div
+          class="new-page-drop-zone"
+          id="newPageDropZone"
+        >
+          Drag a name tag here to create a new page
+        </div>
+      `;
+    }
+
     return html;
   }
 
   function updateTopbar() {
-    const topbarText = document.getElementById('topbarText');
-    const filledCount = labels.filter(v => v).length;
+    const topbarText =
+      document.getElementById('topbarText');
+
+    const filledCount =
+      labels.filter(value => value).length;
+
     if (filledCount > 0) {
-      topbarText.textContent = `${filledCount} label${filledCount !== 1 ? 's' : ''} ready to print`;
+      topbarText.textContent =
+        `${filledCount} label${filledCount !== 1 ? 's' : ''} ready to print`;
     } else {
       topbarText.textContent = '';
     }
   }
 
   function triggerPrint() {
-    // Re-check text fit right before printing too, in case box metrics
-    // shift slightly between screen and print layout.
+    /*
+      Screen zoom must not affect print sizing.
+      @media print overrides it, but fitting text again helps
+      guarantee the final dimensions are correct.
+    */
     fitAllLabelNames();
 
-    // Ensure all images are loaded before printing
-    const images = document.querySelectorAll('img');
+    const images =
+      document.querySelectorAll('.page img');
+
     let loadedCount = 0;
-    const totalCount = images.length;
+
+    const totalCount =
+      images.length;
 
     if (totalCount === 0) {
       window.print();
       return;
     }
 
+    function imageFinished() {
+      loadedCount++;
+
+      if (loadedCount === totalCount) {
+        setTimeout(
+          () => window.print(),
+          100
+        );
+      }
+    }
+
     images.forEach(img => {
       if (img.complete) {
-        loadedCount++;
+        imageFinished();
       } else {
-        img.addEventListener('load', () => {
-          loadedCount++;
-          if (loadedCount === totalCount) {
-            setTimeout(() => window.print(), 100);
-          }
-        }, { once: true });
-        img.addEventListener('error', () => {
-          loadedCount++;
-          if (loadedCount === totalCount) {
-            setTimeout(() => window.print(), 100);
-          }
-        }, { once: true });
-      }
-    });
+        img.addEventListener(
+          'load',
+          imageFinished,
+          { once: true }
+        );
 
-    if (loadedCount === totalCount) {
-      setTimeout(() => window.print(), 100);
-    }
-  }
-
-  // Bound once — these elements persist across renders (only #output's
-  // innerHTML changes), so listeners here must not be re-attached on
-  // every render() or they'd stack up and fire multiple times per click.
-  function attachStaticEventListeners() {
-    const output = document.getElementById('output');
-
-    // Print button
-    document.getElementById('printBtn').addEventListener('click', triggerPrint);
-
-    // Edit mode toggle
-    const editBtn = document.getElementById('editModeToggle');
-    editBtn.addEventListener('click', () => {
-      editMode = !editMode;
-      editBtn.classList.toggle('active');
-      render();
-    });
-
-    // Drag and drop listeners (event delegation on the persistent #output)
-    output.addEventListener('dragstart', (e) => {
-      if (e.target.tagName === 'IMG') {
-        e.preventDefault();
-        return;
-      }
-      if (!e.target.classList.contains('label') || !editMode || e.target.dataset.empty === 'true') return;
-      draggedLabel = e.target;
-      e.target.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-    });
-
-    output.addEventListener('dragend', (e) => {
-      if (!e.target.classList.contains('label')) return;
-      e.target.classList.remove('dragging');
-      document.querySelectorAll('.label.drag-over').forEach(el => {
-        el.classList.remove('drag-over');
-      });
-    });
-
-    output.addEventListener('dragover', (e) => {
-      if (!editMode) return;
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      const target = e.target.closest('.label');
-      if (target && target !== draggedLabel && target.dataset.index !== undefined) {
-        target.classList.add('drag-over');
-      }
-    });
-
-    output.addEventListener('dragleave', (e) => {
-      const target = e.target.closest('.label');
-      if (target) target.classList.remove('drag-over');
-    });
-
-    output.addEventListener('drop', (e) => {
-      if (!editMode || !draggedLabel) return;
-      e.preventDefault();
-      const target = e.target.closest('.label');
-      if (target && target !== draggedLabel && target.dataset.index !== undefined) {
-        const fromIdx = parseInt(draggedLabel.dataset.index);
-        const toIdx = parseInt(target.dataset.index);
-
-        // Direct swap — the dragged label and whatever was at the drop
-        // target (a name, or nothing) trade places exactly, so a label
-        // can be placed on any specific slot on the grid, filled or blank.
-        const temp = labels[fromIdx];
-        labels[fromIdx] = labels[toIdx];
-        labels[toIdx] = temp;
-
-        trimTrailingEmptySlots();
-        render();
-        updateNamesList();
-      }
-    });
-
-    // Name editing
-    output.addEventListener('input', (e) => {
-      if (e.target.classList.contains('label-name')) {
-        const idx = parseInt(e.target.dataset.index);
-        labels[idx] = e.target.textContent;
-        fitLabelName(e.target);
+        img.addEventListener(
+          'error',
+          imageFinished,
+          { once: true }
+        );
       }
     });
   }
 
-  function render() {
-    const output = document.getElementById('output');
-    output.innerHTML = renderLabels();
-    fitAllLabelNames();
-    updateTopbar();
-  }
+  /*
+    Move a dragged tag onto an existing label slot.
+  */
+  function moveLabelToSlot(fromIdx, toIdx) {
+    const temp = labels[fromIdx];
 
-  function init() {
-    labels = getUrlParams();
-    padLabels();
+    labels[fromIdx] = labels[toIdx];
+    labels[toIdx] = temp;
 
-    // Add form listener
-    document.getElementById('addNameForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      addName(document.getElementById('nameInput').value);
-    });
+    trimTrailingEmptySlots();
 
-    // Clear all button
-    document.getElementById('clearAllBtn').addEventListener('click', clearAllNames);
-
-    // Bind persistent listeners once
-    attachStaticEventListeners();
-
-    // Initial render
     render();
     updateNamesList();
   }
 
-  document.addEventListener('DOMContentLoaded', init);
+  /*
+    Create a completely new 10-slot sheet and place the
+    dragged name in the first position on that new sheet.
+  */
+  function moveLabelToNewPage(fromIdx) {
+    const name = labels[fromIdx];
+
+    if (!name) return;
+
+    /*
+      labels is normally padded to a full page, so the current
+      length is exactly where the new page begins.
+    */
+    const newPageStart = labels.length;
+
+    labels[fromIdx] = '';
+
+    labels.push(
+      ...Array(labelsPerPage).fill('')
+    );
+
+    labels[newPageStart] = name;
+
+    render();
+    updateNamesList();
+
+    /*
+      Scroll down so the freshly-created page is visible.
+    */
+    requestAnimationFrame(() => {
+      const pages =
+        document.querySelectorAll('.page');
+
+      const lastPage =
+        pages[pages.length - 1];
+
+      if (lastPage) {
+        lastPage.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+    });
+  }
+
+  function attachStaticEventListeners() {
+    const output =
+      document.getElementById('output');
+
+    const previewArea =
+      document.getElementById('previewArea');
+
+    /*
+      Print
+    */
+    document
+      .getElementById('printBtn')
+      .addEventListener(
+        'click',
+        triggerPrint
+      );
+
+    /*
+      Edit Mode
+    */
+    const editBtn =
+      document.getElementById('editModeToggle');
+
+    editBtn.classList.toggle(
+      'active',
+      editMode
+    );
+
+    editBtn.addEventListener(
+      'click',
+      () => {
+        editMode = !editMode;
+
+        editBtn.classList.toggle(
+          'active',
+          editMode
+        );
+
+        render();
+      }
+    );
+
+    /*
+      Drag start
+    */
+    output.addEventListener(
+      'dragstart',
+      e => {
+        if (
+          e.target.tagName === 'IMG' ||
+          e.target.closest('.label-name-part')
+        ) {
+          /*
+            When editing text, don't accidentally drag it
+            just because the mouse begins over the text.
+          */
+          if (
+            e.target.closest('.label-name-part') &&
+            document.activeElement ===
+              e.target.closest('.label-name-part')
+          ) {
+            e.preventDefault();
+            return;
+          }
+        }
+
+        const label =
+          e.target.closest('.label');
+
+        if (
+          !label ||
+          !editMode ||
+          label.dataset.empty === 'true'
+        ) {
+          return;
+        }
+
+        draggedLabel = label;
+
+        label.classList.add('dragging');
+
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = 'move';
+
+          /*
+            Required by some browsers for drag-and-drop
+            event handling to behave reliably.
+          */
+          e.dataTransfer.setData(
+            'text/plain',
+            label.dataset.index
+          );
+        }
+      }
+    );
+
+    /*
+      Drag end
+    */
+    output.addEventListener(
+      'dragend',
+      e => {
+        const label =
+          e.target.closest('.label');
+
+        if (label) {
+          label.classList.remove('dragging');
+        }
+
+        document
+          .querySelectorAll(
+            '.label.drag-over, .new-page-drop-zone.active'
+          )
+          .forEach(el => {
+            el.classList.remove(
+              'drag-over',
+              'active'
+            );
+          });
+
+        draggedLabel = null;
+      }
+    );
+
+    /*
+      Drag over existing slots or bottom page creator.
+    */
+    output.addEventListener(
+      'dragover',
+      e => {
+        if (!editMode || !draggedLabel) {
+          return;
+        }
+
+        const newPageZone =
+          e.target.closest('.new-page-drop-zone');
+
+        if (newPageZone) {
+          e.preventDefault();
+
+          if (e.dataTransfer) {
+            e.dataTransfer.dropEffect = 'move';
+          }
+
+          newPageZone.classList.add('active');
+
+          /*
+            Automatically keep scrolling toward the bottom
+            while hovering over the page-creation area.
+          */
+          previewArea.scrollTop += 10;
+
+          return;
+        }
+
+        const target =
+          e.target.closest('.label');
+
+        if (
+          target &&
+          target !== draggedLabel &&
+          target.dataset.index !== undefined
+        ) {
+          e.preventDefault();
+
+          if (e.dataTransfer) {
+            e.dataTransfer.dropEffect = 'move';
+          }
+
+          target.classList.add('drag-over');
+        }
+      }
+    );
+
+    /*
+      Remove drag highlighting.
+    */
+    output.addEventListener(
+      'dragleave',
+      e => {
+        const target =
+          e.target.closest('.label');
+
+        if (target) {
+          target.classList.remove(
+            'drag-over'
+          );
+        }
+
+        const newPageZone =
+          e.target.closest('.new-page-drop-zone');
+
+        if (newPageZone) {
+          newPageZone.classList.remove(
+            'active'
+          );
+        }
+      }
+    );
+
+    /*
+      Drop
+    */
+    output.addEventListener(
+      'drop',
+      e => {
+        if (
+          !editMode ||
+          !draggedLabel
+        ) {
+          return;
+        }
+
+        e.preventDefault();
+
+        const fromIdx =
+          parseInt(
+            draggedLabel.dataset.index,
+            10
+          );
+
+        /*
+          Bottom zone = make new page.
+        */
+        const newPageZone =
+          e.target.closest('.new-page-drop-zone');
+
+        if (newPageZone) {
+          moveLabelToNewPage(fromIdx);
+          draggedLabel = null;
+          return;
+        }
+
+        /*
+          Normal slot = swap positions.
+        */
+        const target =
+          e.target.closest('.label');
+
+        if (
+          target &&
+          target !== draggedLabel &&
+          target.dataset.index !== undefined
+        ) {
+          const toIdx =
+            parseInt(
+              target.dataset.index,
+              10
+            );
+
+          moveLabelToSlot(
+            fromIdx,
+            toIdx
+          );
+        }
+
+        draggedLabel = null;
+      }
+    );
+
+    /*
+      Editable first/last name lines.
+    */
+    output.addEventListener(
+      'input',
+      e => {
+        const part =
+          e.target.closest('.label-name-part');
+
+        if (!part) return;
+
+        const nameWrapper =
+          part.closest('.label-name');
+
+        if (!nameWrapper) return;
+
+        const idx =
+          parseInt(
+            nameWrapper.dataset.index,
+            10
+          );
+
+        const firstEl =
+          nameWrapper.querySelector(
+            '.label-first-name'
+          );
+
+        const lastEl =
+          nameWrapper.querySelector(
+            '.label-last-name'
+          );
+
+        const first =
+          firstEl
+            ? firstEl.textContent.trim()
+            : '';
+
+        const last =
+          lastEl
+            ? lastEl.textContent.trim()
+            : '';
+
+        labels[idx] =
+          [first, last]
+            .filter(Boolean)
+            .join(' ');
+
+        fitLabelName(nameWrapper);
+
+        updateNamesList();
+        updateTopbar();
+      }
+    );
+
+    /*
+      Prevent Enter from creating extra lines inside a
+      first/last-name field.
+    */
+    output.addEventListener(
+      'keydown',
+      e => {
+        if (
+          e.target.classList.contains(
+            'label-name-part'
+          ) &&
+          e.key === 'Enter'
+        ) {
+          e.preventDefault();
+
+          const wrapper =
+            e.target.closest('.label-name');
+
+          if (
+            e.target.classList.contains(
+              'label-first-name'
+            )
+          ) {
+            const last =
+              wrapper.querySelector(
+                '.label-last-name'
+              );
+
+            if (last) {
+              last.focus();
+            }
+          } else {
+            e.target.blur();
+          }
+        }
+      }
+    );
+  }
+
+  function render() {
+    const output =
+      document.getElementById('output');
+
+    output.innerHTML =
+      renderLabels();
+
+    updateTopbar();
+
+    /*
+      Wait until the new DOM has been laid out before
+      calculating sizing.
+    */
+    requestAnimationFrame(() => {
+      fitPreviewToScreen();
+      fitAllLabelNames();
+    });
+  }
+
+  function init() {
+    labels = getUrlParams();
+
+    padLabels();
+
+    /*
+      Add form
+    */
+    document
+      .getElementById('addNameForm')
+      .addEventListener(
+        'submit',
+        e => {
+          e.preventDefault();
+
+          addName(
+            document
+              .getElementById('nameInput')
+              .value
+          );
+        }
+      );
+
+    /*
+      Clear all
+    */
+    document
+      .getElementById('clearAllBtn')
+      .addEventListener(
+        'click',
+        clearAllNames
+      );
+
+    attachStaticEventListeners();
+
+    render();
+    updateNamesList();
+
+    /*
+      Recalculate preview scaling whenever the browser
+      or sidebar layout changes size.
+    */
+    window.addEventListener(
+      'resize',
+      () => {
+        fitPreviewToScreen();
+        fitAllLabelNames();
+      }
+    );
+  }
+
+  document.addEventListener(
+    'DOMContentLoaded',
+    init
+  );
 </script>
 
 </body>
