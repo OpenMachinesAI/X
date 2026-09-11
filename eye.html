@@ -24,108 +24,99 @@
         align-items: center;
     }
 
-    /*
-        The digital eye
-    */
+    /* The digital eye */
     .eye {
-        width: 230px;
-        height: 230px;
+        width: 270px;
+        height: 270px;
 
         border-radius: 50%;
 
+        /*
+            Permanent blue/white gradient.
+            No color changing.
+        */
         background:
             radial-gradient(
-                circle at 35% 30%,
-                #8be7ff 0%,
-                #0099ff 25%,
-                #0055ff 55%,
-                #001b75 100%
+                circle at 68% 27%,
+                #ffffff 0%,
+                #dff7ff 12%,
+                rgba(170,225,255,.9) 25%,
+                transparent 42%
+            ),
+            linear-gradient(
+                145deg,
+                #dff8ff 0%,
+                #9ddcff 22%,
+                #5caeff 45%,
+                #2875e8 70%,
+                #1748b8 100%
             );
 
-        --glow: #008cff;
-
+        /*
+            Soft blue glow
+        */
         box-shadow:
-            0 0 15px var(--glow),
-            0 0 35px var(--glow),
-            0 0 70px rgba(0, 120, 255, 0.25);
+            0 0 12px rgba(80, 170, 255, .45),
+            0 0 30px rgba(40, 120, 255, .28),
+            0 0 60px rgba(30, 90, 255, .12);
 
         /*
-            Everything is controlled through transforms,
-            making the movement smooth.
+            Position and blink are controlled here
         */
         transform:
-            translate(var(--moveX, 0px), var(--moveY, 0px))
-            scaleX(var(--scaleX, 1))
-            scaleY(var(--scaleY, 1));
+            translate(var(--x, 0px), var(--y, 0px))
+            scaleX(var(--sx, 1))
+            scaleY(var(--sy, 1));
 
         transition:
-            transform 700ms cubic-bezier(.22, 1, .36, 1),
-            background 1200ms ease,
-            box-shadow 1200ms ease;
+            transform 650ms cubic-bezier(.22, 1, .36, 1);
 
-        animation:
-            breathing 4s ease-in-out infinite;
+        animation: glow 4s ease-in-out infinite;
     }
 
 
     /*
-        Gentle idle movement
+        Very subtle breathing glow
     */
-    @keyframes breathing {
+    @keyframes glow {
 
         0%, 100% {
-            filter: brightness(1);
+            box-shadow:
+                0 0 12px rgba(80, 170, 255, .4),
+                0 0 30px rgba(40, 120, 255, .25),
+                0 0 60px rgba(30, 90, 255, .1);
         }
 
         50% {
-            filter: brightness(1.12);
+            box-shadow:
+                0 0 18px rgba(100, 190, 255, .5),
+                0 0 40px rgba(40, 130, 255, .3),
+                0 0 75px rgba(30, 90, 255, .15);
         }
     }
 
 
     /*
-        Blink:
-        the circle gets compressed from both sides.
+        BLINK
+
+        Instead of an eyelid, the entire circle
+        smoothly compresses from both sides.
     */
     .eye.blink {
-        --scaleX: 0.08;
-        --scaleY: 0.72;
+        --sx: .08;
+        --sy: .72;
 
         transition:
-            transform 120ms cubic-bezier(.5, 0, .8, .2);
+            transform 120ms cubic-bezier(.6, 0, .9, .2);
     }
 
 
     /*
-        Quick blink variation
+        Tiny resting compression
     */
-    .eye.fast-blink {
-        --scaleX: 0.03;
-        --scaleY: 0.6;
-
-        transition:
-            transform 80ms ease-in;
-    }
-
-
-    /*
-        Status indicator
-    */
-    #status {
-        position: fixed;
-
-        bottom: 25px;
-        left: 50%;
-
-        transform: translateX(-50%);
-
-        color: rgba(255,255,255,.35);
-
-        font-family: monospace;
-        font-size: 12px;
-
-        letter-spacing: 2px;
-        text-transform: uppercase;
+    .eye.thinking {
+        --sx: .88;
+        --sy: 1.04;
     }
 </style>
 </head>
@@ -134,265 +125,116 @@
 
 <div class="eye" id="eye"></div>
 
-<div id="status">
-    DIGITAL EYE
-</div>
-
-
 <script>
 
 const eye = document.getElementById("eye");
 
 
-// ---------------------------------------------
-// COLORS
-// ---------------------------------------------
-
-const colors = [
-    {
-        main: "#006eff",
-        light: "#8be7ff",
-        dark: "#001b75",
-        glow: "#008cff"
-    },
-
-    {
-        main: "#00d9ff",
-        light: "#baffff",
-        dark: "#004c75",
-        glow: "#00ffff"
-    },
-
-    {
-        main: "#7b3cff",
-        light: "#d8baff",
-        dark: "#1d075c",
-        glow: "#914cff"
-    },
-
-    {
-        main: "#ff2f92",
-        light: "#ffb8df",
-        dark: "#5c0635",
-        glow: "#ff3da6"
-    },
-
-    {
-        main: "#ff3158",
-        light: "#ffb0bc",
-        dark: "#5c0013",
-        glow: "#ff3158"
-    },
-
-    {
-        main: "#ff8700",
-        light: "#ffd29a",
-        dark: "#592600",
-        glow: "#ff8c1a"
-    },
-
-    {
-        main: "#00d66b",
-        light: "#aaffd1",
-        dark: "#003d20",
-        glow: "#00ff88"
-    },
-
-    {
-        main: "#ffe000",
-        light: "#fff5a3",
-        dark: "#594c00",
-        glow: "#ffe600"
-    }
-];
-
-
-// ---------------------------------------------
-// CHANGE COLOR
-// ---------------------------------------------
-
-function changeColor() {
-
-    const c =
-        colors[
-            Math.floor(Math.random() * colors.length)
-        ];
-
-    eye.style.setProperty(
-        "--glow",
-        c.glow
-    );
-
-    eye.style.background = `
-        radial-gradient(
-            circle at 35% 30%,
-            ${c.light} 0%,
-            ${c.main} 28%,
-            ${c.main} 55%,
-            ${c.dark} 100%
-        )
-    `;
-}
-
-
-// ---------------------------------------------
+// ------------------------------------------------
 // MOVE
-// ---------------------------------------------
+// ------------------------------------------------
 
 function moveEye() {
 
-    const x =
-        (Math.random() - 0.5) * 100;
+    const x = (Math.random() - 0.5) * 100;
+    const y = (Math.random() - 0.5) * 70;
 
-    const y =
-        (Math.random() - 0.5) * 70;
-
-    eye.style.setProperty(
-        "--moveX",
-        `${x}px`
-    );
-
-    eye.style.setProperty(
-        "--moveY",
-        `${y}px`
-    );
+    eye.style.setProperty("--x", `${x}px`);
+    eye.style.setProperty("--y", `${y}px`);
 }
 
 
-// ---------------------------------------------
-// RESET POSITION
-// ---------------------------------------------
+// ------------------------------------------------
+// CENTER
+// ------------------------------------------------
 
 function centerEye() {
 
-    eye.style.setProperty(
-        "--moveX",
-        "0px"
-    );
-
-    eye.style.setProperty(
-        "--moveY",
-        "0px"
-    );
+    eye.style.setProperty("--x", "0px");
+    eye.style.setProperty("--y", "0px");
 }
 
 
-// ---------------------------------------------
+// ------------------------------------------------
 // BLINK
-// ---------------------------------------------
+// ------------------------------------------------
 
 function blink() {
 
     eye.classList.add("blink");
 
     setTimeout(() => {
-
         eye.classList.remove("blink");
-
-    }, 180);
+    }, 170);
 }
 
 
-// ---------------------------------------------
+// ------------------------------------------------
 // DOUBLE BLINK
-// ---------------------------------------------
+// ------------------------------------------------
 
 function doubleBlink() {
 
     blink();
 
     setTimeout(() => {
-
         blink();
-
-    }, 300);
+    }, 280);
 }
 
 
-// ---------------------------------------------
-// RANDOM BEHAVIOR
-// ---------------------------------------------
+// ------------------------------------------------
+// AUTONOMOUS BEHAVIOR
+// ------------------------------------------------
 
-function randomBehavior() {
+function behavior() {
 
-    /*
-        Look somewhere
-    */
+    // Look somewhere
     moveEye();
 
 
-    /*
-        Sometimes change color
-    */
-    if (Math.random() < 0.18) {
-        changeColor();
-    }
-
-
-    /*
-        Sometimes blink after moving
-    */
-    if (Math.random() < 0.45) {
+    // Sometimes blink
+    if (Math.random() < .45) {
 
         setTimeout(() => {
-
             blink();
-
-        }, 400 + Math.random() * 900);
-
+        }, 500 + Math.random() * 800);
     }
 
 
-    /*
-        Occasionally double blink
-    */
-    if (Math.random() < 0.08) {
+    // Occasional double blink
+    if (Math.random() < .08) {
 
         setTimeout(() => {
-
             doubleBlink();
-
         }, 700);
-
     }
 
 
-    /*
-        Return toward center occasionally
-    */
-    if (Math.random() < 0.3) {
+    // Occasionally return to center
+    if (Math.random() < .4) {
 
         setTimeout(() => {
-
             centerEye();
-
-        }, 1200 + Math.random() * 1200);
-
+        }, 1300 + Math.random() * 1000);
     }
 
 
-    /*
-        Next behavior
-    */
+    // Continue
     setTimeout(
-        randomBehavior,
-        1200 + Math.random() * 2300
+        behavior,
+        1400 + Math.random() * 2200
     );
 }
 
 
-// ---------------------------------------------
-// START
-// ---------------------------------------------
-
-changeColor();
-
-randomBehavior();
+// Start
+behavior();
 
 
-// ---------------------------------------------
-// MICROPHONE REACTIVITY
-// ---------------------------------------------
+// ------------------------------------------------
+// MICROPHONE REACTION
+// ------------------------------------------------
 
 let analyser;
 let microphone;
@@ -431,10 +273,7 @@ async function startMicrophone() {
 
 
         microphone =
-            audioContext.createMediaStreamSource(
-                stream
-            );
-
+            audioContext.createMediaStreamSource(stream);
 
         microphone.connect(analyser);
 
@@ -444,21 +283,17 @@ async function startMicrophone() {
 
     } catch (error) {
 
-        /*
-            If microphone isn't available,
-            autonomous behavior continues.
-        */
+        // No microphone:
+        // autonomous behavior continues.
 
-        console.log(
-            "Microphone unavailable. Using autonomous mode."
-        );
+        console.log("Using autonomous mode.");
     }
 }
 
 
-// ---------------------------------------------
-// MICROPHONE LOOP
-// ---------------------------------------------
+// ------------------------------------------------
+// SOUND REACTION
+// ------------------------------------------------
 
 function microphoneLoop() {
 
@@ -478,80 +313,48 @@ function microphoneLoop() {
         total += data[i];
     }
 
-
     const volume =
         total / data.length;
 
 
     /*
-        Only react strongly to noticeable sound.
+        Sound makes the eye move.
     */
-    if (volume > 35) {
+    if (volume > 15) {
 
         const intensity =
-            Math.min(volume / 100, 1);
+            Math.min(volume / 80, 1);
 
-
-        /*
-            Sound moves the circle.
-        */
         const x =
-            Math.sin(Date.now() / 250)
+            Math.sin(Date.now() / 350)
             * intensity
-            * 90;
+            * 70;
 
         const y =
-            Math.cos(Date.now() / 350)
+            Math.cos(Date.now() / 500)
             * intensity
-            * 60;
-
+            * 45;
 
         eye.style.setProperty(
-            "--moveX",
+            "--x",
             `${x}px`
         );
 
         eye.style.setProperty(
-            "--moveY",
+            "--y",
             `${y}px`
         );
+    }
 
 
-        /*
-            Loud sound makes it brighter.
-        */
-        eye.style.filter =
-            `brightness(${1 + intensity * .5})`;
-
-
-        /*
-            Very loud sound = blink.
-        */
-        if (
-            volume > 70 &&
-            Math.random() < 0.025
-        ) {
-
-            blink();
-        }
-
-
-        /*
-            Occasionally react with
-            a completely different color.
-        */
-        if (
-            volume > 55 &&
-            Math.random() < 0.01
-        ) {
-
-            changeColor();
-        }
-
-    } else {
-
-        eye.style.filter =
-            "brightness(1)";
+    /*
+        Loud sound causes a blink.
+    */
+    if (
+        volume > 65 &&
+        Math.random() < .025
+    ) {
+        blink();
     }
 
 
