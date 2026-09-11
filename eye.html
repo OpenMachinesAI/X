@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Animated Eye</title>
+
+<title>Blue Glow</title>
 
 <style>
     * {
@@ -12,325 +13,59 @@
 
     body {
         margin: 0;
+        width: 100vw;
         height: 100vh;
-        overflow: hidden;
         background: #000;
         display: flex;
         justify-content: center;
         align-items: center;
-    }
-
-    .eye {
-        position: relative;
-        width: 420px;
-        height: 240px;
-        background: white;
-        border-radius: 70% 10%;
-        transform: rotate(45deg);
         overflow: hidden;
+    }
+
+    .circle {
+        width: 260px;
+        height: 260px;
+
+        border-radius: 50%;
+
+        background: linear-gradient(
+            135deg,
+            #001bff,
+            #006eff,
+            #00bfff,
+            #004cff,
+            #001bff
+        );
+
+        background-size: 300% 300%;
 
         box-shadow:
-            0 0 25px var(--glow),
-            0 0 60px var(--glow),
-            0 0 120px var(--glow);
+            0 0 15px rgba(0, 100, 255, 0.5),
+            0 0 35px rgba(0, 100, 255, 0.3);
 
-        animation: eyeColor 8s infinite alternate;
+        animation: gradient 6s ease infinite;
     }
 
-    /* Iris */
-    .iris {
-        position: absolute;
-        width: 145px;
-        height: 145px;
-        border-radius: 50%;
-        background:
-            repeating-radial-gradient(
-                circle,
-                #005cff 0px,
-                #008cff 8px,
-                #00cfff 15px,
-                #0050ff 23px
-            );
-
-        left: 50%;
-        top: 50%;
-
-        transform:
-            translate(-50%, -50%)
-            translate(var(--x), var(--y))
-            rotate(-45deg);
-
-        box-shadow:
-            0 0 20px #00aaff,
-            inset 0 0 20px #002dff;
-
-        transition:
-            transform 1.2s cubic-bezier(.2,.8,.2,1),
-            background 2s ease;
-    }
-
-    /* Pupil */
-    .pupil {
-        position: absolute;
-        width: 55px;
-        height: 75px;
-        border-radius: 50%;
-        background: #000;
-
-        left: 50%;
-        top: 50%;
-
-        transform:
-            translate(-50%, -50%)
-            translate(var(--x), var(--y))
-            rotate(-45deg);
-
-        box-shadow: 0 0 12px #001eff;
-    }
-
-    /* Eye shine */
-    .shine {
-        position: absolute;
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background: white;
-        opacity: .9;
-
-        left: 43%;
-        top: 35%;
-
-        transform: rotate(-45deg);
-        filter: blur(1px);
-    }
-
-    /* Eyelids */
-    .lid {
-        position: absolute;
-        z-index: 10;
-        left: -10%;
-        width: 120%;
-        height: 55%;
-        background: #000;
-
-        transition: transform .15s ease-in;
-    }
-
-    .top-lid {
-        top: -48%;
-        border-radius: 0 0 50% 50%;
-        transform: rotate(-45deg);
-        transform-origin: center bottom;
-    }
-
-    .bottom-lid {
-        bottom: -48%;
-        border-radius: 50% 50% 0 0;
-        transform: rotate(-45deg);
-        transform-origin: center top;
-    }
-
-    /* Blink */
-    .eye.blink .top-lid {
-        transform:
-            rotate(-45deg)
-            translateY(155px);
-    }
-
-    .eye.blink .bottom-lid {
-        transform:
-            rotate(-45deg)
-            translateY(-155px);
-    }
-
-    /* Color changing */
-    @keyframes eyeColor {
+    @keyframes gradient {
         0% {
-            --glow: #0066ff;
-        }
-
-        25% {
-            --glow: #00ccff;
+            background-position: 0% 50%;
         }
 
         50% {
-            --glow: #8a2be2;
-        }
-
-        75% {
-            --glow: #006eff;
+            background-position: 100% 50%;
         }
 
         100% {
-            --glow: #00ffff;
-        }
-    }
-
-    /* Breathing glow */
-    .eye::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border-radius: inherit;
-        pointer-events: none;
-
-        box-shadow:
-            inset 0 0 25px var(--glow),
-            inset 0 0 70px var(--glow);
-
-        animation: breathe 3s ease-in-out infinite;
-    }
-
-    @keyframes breathe {
-        0%, 100% {
-            opacity: .35;
-        }
-
-        50% {
-            opacity: .9;
-        }
-    }
-
-    @media (max-width: 600px) {
-        .eye {
-            width: 300px;
-            height: 170px;
-        }
-
-        .iris {
-            width: 105px;
-            height: 105px;
-        }
-
-        .pupil {
-            width: 42px;
-            height: 58px;
+            background-position: 0% 50%;
         }
     }
 </style>
+
 </head>
 
 <body>
 
-<div class="eye" id="eye">
-
-    <div class="iris" id="iris"></div>
-    <div class="pupil" id="pupil"></div>
-
-    <div class="shine"></div>
-
-    <div class="lid top-lid"></div>
-    <div class="lid bottom-lid"></div>
-
-</div>
-
-<script>
-
-const eye = document.getElementById("eye");
-const iris = document.getElementById("iris");
-const pupil = document.getElementById("pupil");
-
-let x = 0;
-let y = 0;
-
-/* Make the eye look toward a position */
-function lookAround() {
-
-    const directions = [
-        [-55, 0],     // left
-        [55, 0],      // right
-        [0, -30],     // up
-        [0, 30],      // down
-        [-35, -20],   // upper-left
-        [35, -20],    // upper-right
-        [-35, 20],    // lower-left
-        [35, 20],     // lower-right
-        [0, 0]        // center
-    ];
-
-    const direction =
-        directions[Math.floor(Math.random() * directions.length)];
-
-    x = direction[0];
-    y = direction[1];
-
-    iris.style.setProperty("--x", `${x}px`);
-    iris.style.setProperty("--y", `${y}px`);
-
-    pupil.style.setProperty("--x", `${x}px`);
-    pupil.style.setProperty("--y", `${y}px`);
-}
-
-/* Blink */
-function blink() {
-
-    eye.classList.add("blink");
-
-    setTimeout(() => {
-        eye.classList.remove("blink");
-    }, 180);
-}
-
-/* Random looking */
-function randomLook() {
-
-    lookAround();
-
-    const nextLook =
-        1200 + Math.random() * 2500;
-
-    setTimeout(randomLook, nextLook);
-}
-
-/* Random blinking */
-function randomBlink() {
-
-    blink();
-
-    const nextBlink =
-        2500 + Math.random() * 5000;
-
-    setTimeout(randomBlink, nextBlink);
-}
-
-/* Start */
-lookAround();
-randomLook();
-
-setTimeout(() => {
-    randomBlink();
-}, 1500);
-
-
-/* Also allow the eye to follow your mouse */
-document.addEventListener("mousemove", (event) => {
-
-    const rect = eye.getBoundingClientRect();
-
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-
-    let mouseX = event.clientX - centerX;
-    let mouseY = event.clientY - centerY;
-
-    const distance = Math.sqrt(
-        mouseX * mouseX +
-        mouseY * mouseY
-    );
-
-    if (distance > 0) {
-        mouseX = (mouseX / distance) * 45;
-        mouseY = (mouseY / distance) * 25;
-    }
-
-    iris.style.setProperty("--x", `${mouseX}px`);
-    iris.style.setProperty("--y", `${mouseY}px`);
-
-    pupil.style.setProperty("--x", `${mouseX}px`);
-    pupil.style.setProperty("--y", `${mouseY}px`);
-});
-
-</script>
+<div class="circle"></div>
 
 </body>
 </html>
