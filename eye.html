@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Reactive Eye</title>
+
+<title>Digital Eye</title>
 
 <style>
     * {
@@ -15,133 +16,100 @@
         width: 100vw;
         height: 100vh;
         overflow: hidden;
+
         background: #000;
 
         display: flex;
         justify-content: center;
         align-items: center;
-
-        font-family: Arial, sans-serif;
     }
 
+    /*
+        The digital eye
+    */
     .eye {
-        position: relative;
-
-        width: 280px;
-        height: 280px;
+        width: 230px;
+        height: 230px;
 
         border-radius: 50%;
 
         background:
             radial-gradient(
                 circle at 35% 30%,
-                #8eeaff 0%,
-                #168cff 25%,
-                #003cff 55%,
-                #00145c 100%
+                #8be7ff 0%,
+                #0099ff 25%,
+                #0055ff 55%,
+                #001b75 100%
             );
+
+        --glow: #008cff;
 
         box-shadow:
             0 0 15px var(--glow),
-            0 0 40px var(--glow),
-            0 0 80px rgba(0, 100, 255, .25);
+            0 0 35px var(--glow),
+            0 0 70px rgba(0, 120, 255, 0.25);
 
-        transition:
-            background 1.5s ease,
-            box-shadow .3s ease,
-            transform .3s ease;
-
-        animation: breathe 4s ease-in-out infinite;
-    }
-
-    /*
-       The pupil/dot
-    */
-    .pupil {
-        position: absolute;
-
-        width: 75px;
-        height: 75px;
-
-        left: 50%;
-        top: 50%;
-
+        /*
+            Everything is controlled through transforms,
+            making the movement smooth.
+        */
         transform:
-            translate(-50%, -50%)
-            translate(var(--x), var(--y));
-
-        border-radius: 50%;
-
-        background: #000;
-
-        box-shadow:
-            0 0 8px rgba(0,0,0,.8),
-            inset 0 0 12px #111;
+            translate(var(--moveX, 0px), var(--moveY, 0px))
+            scaleX(var(--scaleX, 1))
+            scaleY(var(--scaleY, 1));
 
         transition:
-            transform .45s cubic-bezier(.2,.8,.2,1),
-            width .25s ease,
-            height .25s ease;
+            transform 700ms cubic-bezier(.22, 1, .36, 1),
+            background 1200ms ease,
+            box-shadow 1200ms ease;
+
+        animation:
+            breathing 4s ease-in-out infinite;
     }
 
+
     /*
-       Small reflection
+        Gentle idle movement
     */
-    .reflection {
-        position: absolute;
+    @keyframes breathing {
 
-        width: 18px;
-        height: 18px;
+        0%, 100% {
+            filter: brightness(1);
+        }
 
-        border-radius: 50%;
-
-        background: white;
-
-        top: 25%;
-        left: 30%;
-
-        opacity: .85;
-
-        filter: blur(1px);
+        50% {
+            filter: brightness(1.12);
+        }
     }
 
+
     /*
-       Blink eyelid
+        Blink:
+        the circle gets compressed from both sides.
     */
-    .lid {
-        position: absolute;
+    .eye.blink {
+        --scaleX: 0.08;
+        --scaleY: 0.72;
 
-        left: -10%;
-        width: 120%;
-        height: 55%;
-
-        background: #000;
-
-        z-index: 5;
-
-        transition: transform .12s ease;
+        transition:
+            transform 120ms cubic-bezier(.5, 0, .8, .2);
     }
 
-    .top-lid {
-        top: -50%;
-        border-radius: 0 0 50% 50%;
-    }
-
-    .bottom-lid {
-        bottom: -50%;
-        border-radius: 50% 50% 0 0;
-    }
-
-    .eye.blink .top-lid {
-        transform: translateY(140px);
-    }
-
-    .eye.blink .bottom-lid {
-        transform: translateY(-140px);
-    }
 
     /*
-       Status text
+        Quick blink variation
+    */
+    .eye.fast-blink {
+        --scaleX: 0.03;
+        --scaleY: 0.6;
+
+        transition:
+            transform 80ms ease-in;
+    }
+
+
+    /*
+        Status indicator
     */
     #status {
         position: fixed;
@@ -151,244 +119,169 @@
 
         transform: translateX(-50%);
 
-        color: rgba(255,255,255,.5);
+        color: rgba(255,255,255,.35);
 
-        font-size: 13px;
+        font-family: monospace;
+        font-size: 12px;
+
         letter-spacing: 2px;
-
         text-transform: uppercase;
-
-        pointer-events: none;
-    }
-
-    /*
-       Breathing animation
-    */
-    @keyframes breathe {
-
-        0%, 100% {
-            transform: scale(1);
-        }
-
-        50% {
-            transform: scale(1.025);
-        }
-    }
-
-    /*
-       Excited animation
-    */
-    .eye.excited {
-        animation:
-            breathe .7s ease-in-out infinite,
-            excitedGlow .7s ease-in-out infinite alternate;
-    }
-
-    @keyframes excitedGlow {
-
-        from {
-            box-shadow:
-                0 0 20px var(--glow),
-                0 0 45px var(--glow);
-        }
-
-        to {
-            box-shadow:
-                0 0 35px var(--glow),
-                0 0 100px var(--glow);
-        }
-    }
-
-    /*
-       Calm animation
-    */
-    .eye.calm {
-        animation:
-            breathe 6s ease-in-out infinite;
-    }
-
-    /*
-       Error / no microphone
-    */
-    .eye.no-mic {
-        box-shadow:
-            0 0 20px #7040ff,
-            0 0 50px #4020aa;
     }
 </style>
 </head>
 
 <body>
 
-<div
-    class="eye"
-    id="eye"
-    style="--glow:#008cff;"
->
+<div class="eye" id="eye"></div>
 
-    <div class="pupil" id="pupil">
-        <div class="reflection"></div>
-    </div>
-
-    <div class="lid top-lid"></div>
-    <div class="lid bottom-lid"></div>
-
+<div id="status">
+    DIGITAL EYE
 </div>
-
-<div id="status">Starting...</div>
 
 
 <script>
 
 const eye = document.getElementById("eye");
-const pupil = document.getElementById("pupil");
-const statusText = document.getElementById("status");
 
 
-// --------------------------------------------------
+// ---------------------------------------------
 // COLORS
-// --------------------------------------------------
+// ---------------------------------------------
 
 const colors = [
-
     {
-        name: "Blue",
         main: "#006eff",
-        glow: "#008cff",
-        light: "#6ee7ff"
+        light: "#8be7ff",
+        dark: "#001b75",
+        glow: "#008cff"
     },
 
     {
-        name: "Cyan",
         main: "#00d9ff",
-        glow: "#00ffff",
-        light: "#aaffff"
+        light: "#baffff",
+        dark: "#004c75",
+        glow: "#00ffff"
     },
 
     {
-        name: "Purple",
-        main: "#703cff",
-        glow: "#9b5cff",
-        light: "#d8b4ff"
+        main: "#7b3cff",
+        light: "#d8baff",
+        dark: "#1d075c",
+        glow: "#914cff"
     },
 
     {
-        name: "Pink",
-        main: "#ff2992",
-        glow: "#ff4db8",
-        light: "#ffb6df"
+        main: "#ff2f92",
+        light: "#ffb8df",
+        dark: "#5c0635",
+        glow: "#ff3da6"
     },
 
     {
-        name: "Red",
-        main: "#ff1744",
-        glow: "#ff304f",
-        light: "#ff9aaa"
+        main: "#ff3158",
+        light: "#ffb0bc",
+        dark: "#5c0013",
+        glow: "#ff3158"
     },
 
     {
-        name: "Orange",
-        main: "#ff7b00",
-        glow: "#ff9d32",
-        light: "#ffd29a"
+        main: "#ff8700",
+        light: "#ffd29a",
+        dark: "#592600",
+        glow: "#ff8c1a"
     },
 
     {
-        name: "Green",
-        main: "#00c853",
-        glow: "#00ff88",
-        light: "#9affc7"
+        main: "#00d66b",
+        light: "#aaffd1",
+        dark: "#003d20",
+        glow: "#00ff88"
     },
 
     {
-        name: "Yellow",
-        main: "#ffd600",
-        glow: "#ffe44d",
-        light: "#fff5a3"
+        main: "#ffe000",
+        light: "#fff5a3",
+        dark: "#594c00",
+        glow: "#ffe600"
     }
-
 ];
 
 
-// --------------------------------------------------
+// ---------------------------------------------
 // CHANGE COLOR
-// --------------------------------------------------
+// ---------------------------------------------
 
-function changeColor(index = null) {
+function changeColor() {
 
-    if (index === null) {
-        index = Math.floor(Math.random() * colors.length);
-    }
+    const c =
+        colors[
+            Math.floor(Math.random() * colors.length)
+        ];
 
-    const color = colors[index];
-
-    eye.style.setProperty("--glow", color.glow);
+    eye.style.setProperty(
+        "--glow",
+        c.glow
+    );
 
     eye.style.background = `
         radial-gradient(
             circle at 35% 30%,
-            ${color.light} 0%,
-            ${color.main} 30%,
-            ${color.main} 55%,
-            #050014 100%
+            ${c.light} 0%,
+            ${c.main} 28%,
+            ${c.main} 55%,
+            ${c.dark} 100%
         )
     `;
 }
 
 
-// --------------------------------------------------
-// MOVE PUPIL
-// --------------------------------------------------
+// ---------------------------------------------
+// MOVE
+// ---------------------------------------------
 
-function movePupil(x, y, speed = .45) {
+function moveEye() {
 
-    pupil.style.transitionDuration = speed + "s";
+    const x =
+        (Math.random() - 0.5) * 100;
 
-    pupil.style.setProperty("--x", x + "px");
-    pupil.style.setProperty("--y", y + "px");
-}
+    const y =
+        (Math.random() - 0.5) * 70;
 
+    eye.style.setProperty(
+        "--moveX",
+        `${x}px`
+    );
 
-// --------------------------------------------------
-// RANDOM LOOKING
-// --------------------------------------------------
-
-function randomLook() {
-
-    const directions = [
-
-        [-65, -20],
-        [-55, 0],
-        [-45, 25],
-
-        [-15, -35],
-        [0, 0],
-        [20, 30],
-
-        [45, -20],
-        [60, 0],
-        [45, 25]
-
-    ];
-
-    const direction =
-        directions[
-            Math.floor(Math.random() * directions.length)
-        ];
-
-    movePupil(
-        direction[0],
-        direction[1],
-        .4 + Math.random() * .5
+    eye.style.setProperty(
+        "--moveY",
+        `${y}px`
     );
 }
 
 
-// --------------------------------------------------
-// BLINK
-// --------------------------------------------------
+// ---------------------------------------------
+// RESET POSITION
+// ---------------------------------------------
 
-function blink(doubleBlink = false) {
+function centerEye() {
+
+    eye.style.setProperty(
+        "--moveX",
+        "0px"
+    );
+
+    eye.style.setProperty(
+        "--moveY",
+        "0px"
+    );
+}
+
+
+// ---------------------------------------------
+// BLINK
+// ---------------------------------------------
+
+function blink() {
 
     eye.classList.add("blink");
 
@@ -396,103 +289,133 @@ function blink(doubleBlink = false) {
 
         eye.classList.remove("blink");
 
-        if (doubleBlink) {
-
-            setTimeout(() => {
-
-                eye.classList.add("blink");
-
-                setTimeout(() => {
-                    eye.classList.remove("blink");
-                }, 130);
-
-            }, 180);
-        }
-
-    }, 130);
+    }, 180);
 }
 
 
-// --------------------------------------------------
+// ---------------------------------------------
+// DOUBLE BLINK
+// ---------------------------------------------
+
+function doubleBlink() {
+
+    blink();
+
+    setTimeout(() => {
+
+        blink();
+
+    }, 300);
+}
+
+
+// ---------------------------------------------
 // RANDOM BEHAVIOR
-// --------------------------------------------------
+// ---------------------------------------------
 
-function autonomousBehavior() {
-
-    randomLook();
+function randomBehavior() {
 
     /*
-       Occasionally change color
+        Look somewhere
     */
-    if (Math.random() < .15) {
+    moveEye();
+
+
+    /*
+        Sometimes change color
+    */
+    if (Math.random() < 0.18) {
         changeColor();
     }
 
+
     /*
-       Occasionally blink
+        Sometimes blink after moving
     */
-    if (Math.random() < .35) {
+    if (Math.random() < 0.45) {
 
         setTimeout(() => {
 
-            blink(
-                Math.random() < .12
-            );
+            blink();
 
-        }, 400);
+        }, 400 + Math.random() * 900);
+
     }
 
-    /*
-       Occasionally become "excited"
-    */
-    if (Math.random() < .08) {
 
-        eye.classList.add("excited");
+    /*
+        Occasionally double blink
+    */
+    if (Math.random() < 0.08) {
 
         setTimeout(() => {
-            eye.classList.remove("excited");
-        }, 1200);
+
+            doubleBlink();
+
+        }, 700);
+
     }
 
+
     /*
-       Next behavior
+        Return toward center occasionally
+    */
+    if (Math.random() < 0.3) {
+
+        setTimeout(() => {
+
+            centerEye();
+
+        }, 1200 + Math.random() * 1200);
+
+    }
+
+
+    /*
+        Next behavior
     */
     setTimeout(
-        autonomousBehavior,
-        900 + Math.random() * 2200
+        randomBehavior,
+        1200 + Math.random() * 2300
     );
 }
 
 
-// --------------------------------------------------
-// MICROPHONE
-// --------------------------------------------------
+// ---------------------------------------------
+// START
+// ---------------------------------------------
 
-let audioContext;
+changeColor();
+
+randomBehavior();
+
+
+// ---------------------------------------------
+// MICROPHONE REACTIVITY
+// ---------------------------------------------
+
 let analyser;
 let microphone;
-let micAvailable = false;
+let audioContext;
+let micActive = false;
+
 
 async function startMicrophone() {
 
-    /*
-       Check browser support
-    */
-    if (
-        !navigator.mediaDevices ||
-        !navigator.mediaDevices.getUserMedia
-    ) {
-
-        useAutonomousMode();
-        return;
-    }
-
     try {
+
+        if (
+            !navigator.mediaDevices ||
+            !navigator.mediaDevices.getUserMedia
+        ) {
+            return;
+        }
 
         const stream =
             await navigator.mediaDevices.getUserMedia({
                 audio: true
             });
+
 
         audioContext =
             new (
@@ -500,42 +423,46 @@ async function startMicrophone() {
                 window.webkitAudioContext
             )();
 
+
         analyser =
             audioContext.createAnalyser();
 
         analyser.fftSize = 256;
 
+
         microphone =
-            audioContext.createMediaStreamSource(stream);
+            audioContext.createMediaStreamSource(
+                stream
+            );
+
 
         microphone.connect(analyser);
 
-        micAvailable = true;
+        micActive = true;
 
-        statusText.textContent =
-            "Microphone reactive";
-
-        reactToMicrophone();
+        microphoneLoop();
 
     } catch (error) {
 
-        console.log(
-            "Microphone unavailable:",
-            error
-        );
+        /*
+            If microphone isn't available,
+            autonomous behavior continues.
+        */
 
-        useAutonomousMode();
+        console.log(
+            "Microphone unavailable. Using autonomous mode."
+        );
     }
 }
 
 
-// --------------------------------------------------
-// MICROPHONE REACTION
-// --------------------------------------------------
+// ---------------------------------------------
+// MICROPHONE LOOP
+// ---------------------------------------------
 
-function reactToMicrophone() {
+function microphoneLoop() {
 
-    if (!micAvailable) return;
+    if (!micActive) return;
 
     const data =
         new Uint8Array(
@@ -544,170 +471,97 @@ function reactToMicrophone() {
 
     analyser.getByteFrequencyData(data);
 
+
     let total = 0;
 
     for (let i = 0; i < data.length; i++) {
         total += data[i];
     }
 
+
     const volume =
         total / data.length;
 
-    /*
-       Convert microphone volume
-       into 0 - 1
-    */
-    const energy =
-        Math.min(volume / 80, 1);
-
 
     /*
-       Move pupil based on sound
+        Only react strongly to noticeable sound.
     */
-    const x =
-        Math.sin(Date.now() / 400) *
-        45 *
-        energy;
+    if (volume > 35) {
 
-    const y =
-        Math.cos(Date.now() / 600) *
-        25 *
-        energy;
+        const intensity =
+            Math.min(volume / 100, 1);
 
-    movePupil(
-        x,
-        y,
-        .15
-    );
-
-
-    /*
-       Make pupil bigger with loud sounds
-    */
-    const size =
-        65 + energy * 25;
-
-    pupil.style.width =
-        size + "px";
-
-    pupil.style.height =
-        size + "px";
-
-
-    /*
-       React to loud sounds
-    */
-    if (energy > .55) {
-
-        eye.classList.add("excited");
 
         /*
-           Bright random color
+            Sound moves the circle.
         */
-        if (Math.random() < .025) {
+        const x =
+            Math.sin(Date.now() / 250)
+            * intensity
+            * 90;
+
+        const y =
+            Math.cos(Date.now() / 350)
+            * intensity
+            * 60;
+
+
+        eye.style.setProperty(
+            "--moveX",
+            `${x}px`
+        );
+
+        eye.style.setProperty(
+            "--moveY",
+            `${y}px`
+        );
+
+
+        /*
+            Loud sound makes it brighter.
+        */
+        eye.style.filter =
+            `brightness(${1 + intensity * .5})`;
+
+
+        /*
+            Very loud sound = blink.
+        */
+        if (
+            volume > 70 &&
+            Math.random() < 0.025
+        ) {
+
+            blink();
+        }
+
+
+        /*
+            Occasionally react with
+            a completely different color.
+        */
+        if (
+            volume > 55 &&
+            Math.random() < 0.01
+        ) {
+
             changeColor();
         }
 
     } else {
 
-        eye.classList.remove("excited");
-    }
-
-
-    /*
-       Random blink when sound happens
-    */
-    if (
-        energy > .35 &&
-        Math.random() < .015
-    ) {
-
-        blink();
+        eye.style.filter =
+            "brightness(1)";
     }
 
 
     requestAnimationFrame(
-        reactToMicrophone
+        microphoneLoop
     );
 }
 
 
-// --------------------------------------------------
-// AUTONOMOUS MODE
-// --------------------------------------------------
-
-function useAutonomousMode() {
-
-    micAvailable = false;
-
-    statusText.textContent =
-        "Autonomous mode";
-
-    eye.classList.add("no-mic");
-
-    autonomousBehavior();
-}
-
-
-// --------------------------------------------------
-// START
-// --------------------------------------------------
-
-changeColor(0);
-
 startMicrophone();
-
-
-// --------------------------------------------------
-// MOUSE INTERACTION
-// --------------------------------------------------
-
-document.addEventListener(
-    "mousemove",
-    event => {
-
-        if (micAvailable) return;
-
-        const centerX =
-            window.innerWidth / 2;
-
-        const centerY =
-            window.innerHeight / 2;
-
-        let x =
-            (event.clientX - centerX) /
-            centerX;
-
-        let y =
-            (event.clientY - centerY) /
-            centerY;
-
-        x =
-            Math.max(-1, Math.min(1, x));
-
-        y =
-            Math.max(-1, Math.min(1, y));
-
-        movePupil(
-            x * 55,
-            y * 35,
-            .35
-        );
-    }
-);
-
-
-// --------------------------------------------------
-// RANDOM COLOR CYCLE
-// --------------------------------------------------
-
-setInterval(() => {
-
-    if (!micAvailable) {
-        changeColor();
-    }
-
-}, 7000);
 
 </script>
 
