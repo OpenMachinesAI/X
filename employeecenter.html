@@ -23,7 +23,8 @@
     header { padding: 36px 0 28px; }
     .topline { position: relative; display: flex; justify-content: center; }
     .brand { display: flex; align-items: center; flex-direction: column; gap: 10px; text-align: center; }
-    .brandmark { display: grid; width: 60px; height: 60px; place-items: center; border: 1px solid #c2dcc9; border-radius: 20px; background: linear-gradient(145deg, #32865f, #1e6647); color: #fff; box-shadow: 0 8px 18px #245a3c2b; font-size: 28px; }
+    .brandmark { display: grid; width: 60px; height: 60px; place-items: center; overflow: hidden; border: 1px solid #c2dcc9; border-radius: 20px; background: #fff; box-shadow: 0 8px 18px #245a3c2b; }
+    .brandmark img { display: block; width: 100%; height: 100%; object-fit: contain; }
     .brandname { font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
     .brandname span { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; font-weight: 550; letter-spacing: .02em; text-transform: none; }
     .header-note { display: none; }
@@ -39,11 +40,22 @@
     .manage-actions .primary:hover { background: #1e6544; }
     .manage-actions .profile-button { background: transparent; }
     .search-icon { position: absolute; top: 50%; left: 17px; width: 19px; height: 19px; transform: translateY(-50%); color: #8490a4; pointer-events: none; }
-    #search { width: 100%; height: 52px; padding: 0 100px 0 49px; border: 1px solid #c6ddcb; border-radius: 14px; background: var(--surface); color: var(--ink); box-shadow: var(--shadow); font: inherit; font-size: 14px; outline: none; }
+    #search { width: 100%; height: 64px; padding: 0 175px 0 49px; border: 1px solid #c6ddcb; border-radius: 14px; background: var(--surface); color: var(--ink); box-shadow: var(--shadow); font: inherit; font-size: 14px; outline: none; }
+    #search::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; display: none; }
     #search:focus { border-color: #66a77c; box-shadow: 0 0 0 4px #30815120, var(--shadow); }
     #search::placeholder { color: #899b90; }
-    .enter-hint { position: absolute; top: 50%; right: 15px; transform: translateY(-50%); color: #8d98aa; font-size: 12px; }
+    .enter-hint { position: absolute; top: 50%; right: 15px; display: flex; align-items: center; gap: 9px; transform: translateY(-50%); color: #8d98aa; font-size: 12px; white-space: nowrap; }
     .enter-hint kbd { padding: 3px 6px; border: 1px solid #d9e7dc; border-radius: 5px; background: #f7fbf6; font: inherit; }
+    .search-brand { position: relative; display: grid; width: 27px; height: 32px; flex: 0 0 auto; place-items: center; }
+    .search-brand img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
+    .search-brand.google-brand { width: 100px; height: 32px; }
+    .search-brand.google-brand img { width: 100px; height: auto; max-width: none; max-height: none; }
+    .search-brand.converge-brand { width: 104px; height: 30px; }
+    .search-brand.converge-brand img { width: 104px; height: auto; max-width: none; max-height: none; }
+    .search-brand.manulife-brand { width: 140px; height: 30px; }
+    .search-brand.manulife-brand img { width: 140px; height: auto; max-width: none; max-height: none; }
+    .search-brand.mzt-brand { width: 152px; height: 30px; }
+    .search-brand.mzt-brand img { width: 152px; height: auto; max-width: none; max-height: none; }
     main { padding: 4px 0 58px; }
     .group { margin-top: 25px; }
     #groups.all-apps { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); align-content: start; gap: 13px; }
@@ -68,6 +80,8 @@
     .tile.drag-over { border-color: var(--accent); box-shadow: 0 0 0 3px #5968d21c; }
     .tile-icon { display: grid; width: 50px; height: 50px; flex: 0 0 50px; place-items: center; border-radius: 15px; background: var(--icon-bg, #edf5ec); color: var(--icon-fg, #267653); font-size: 14px; font-weight: 800; letter-spacing: -.02em; }
     .tile-icon.google-brand { border-radius: 0; background: transparent; }
+    .tile-icon.appsheet-brand { width: 64px; height: 64px; flex-basis: 64px; border-radius: 13px; background: transparent; }
+    .tile-icon.appsheet-brand img { width: 64px; height: 64px; }
     .tile-icon img { display: block; width: 48px; height: 48px; object-fit: contain; }
     .tile-copy { display: block; min-width: 0; max-width: 100%; }
     .tile-title { display: -webkit-box; width: 100%; overflow: hidden; font-size: 14px; font-weight: 720; line-height: 1.18; text-overflow: ellipsis; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
@@ -109,6 +123,8 @@
     .welcome-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
     .welcome-actions button { min-height: 42px; padding: 9px 18px; border: 1px solid #cbdccf; border-radius: 9px; background: #fff; color: #365244; font: inherit; font-size: 13px; font-weight: 750; cursor: pointer; }
     .welcome-actions .continue { border-color: #287550; background: #287550; color: #fff; }
+    #new-apps-dialog { width: min(420px, calc(100% - 28px)); }
+    .new-app-list { margin: 12px 0 0; padding-left: 20px; color: #345043; font-size: 13px; }
     .empty { display: none; padding: 36px 15px; color: var(--muted); text-align: center; }
     footer { padding: 0 0 26px; color: #9aa4b3; font-size: 12px; text-align: center; }
     @media (max-width: 600px) {
@@ -119,8 +135,21 @@
       .tile { gap: 9px; padding: 12px; }
       .tile-icon { width: 42px; height: 42px; flex-basis: 42px; border-radius: 13px; }
       .tile-icon img { width: 40px; height: 40px; }
+      .tile-icon.appsheet-brand { width: 56px; height: 56px; flex-basis: 56px; }
+      .tile-icon.appsheet-brand img { width: 56px; height: 56px; }
       .welcome-card { padding: 23px 18px; }
       .app-choices { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      #search { height: 60px; padding-right: 140px; }
+      .search-brand.google-brand { width: 78px; height: 26px; }
+      .search-brand.google-brand img { width: 78px; }
+      .search-brand.converge-brand { width: 82px; height: 25px; }
+      .search-brand.converge-brand img { width: 82px; }
+      .search-brand.manulife-brand { width: 112px; height: 25px; }
+      .search-brand.manulife-brand img { width: 112px; }
+      .search-brand.mzt-brand { width: 118px; height: 25px; }
+      .search-brand.mzt-brand img { width: 118px; }
     }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
   </style>
@@ -131,7 +160,7 @@
       <div class="topline">
         <button id="view-toggle" class="view-toggle" type="button" aria-label="Switch to all apps view" title="Switch to all apps view" aria-pressed="false"><span id="view-icon" aria-hidden="true">▤</span></button>
         <div class="brand">
-          <div class="brandmark" aria-hidden="true">✦</div>
+          <div class="brandmark"><img src="icons/MZTICON.png" alt="Mile Zero Tours"></div>
           <div class="brandname">Mile Zero Tours<span>Employee Center</span></div>
         </div>
         <div class="header-note">Your work tools, all in one place</div>
@@ -146,7 +175,7 @@
       <form class="search-wrap" id="search-form" role="search">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 4.2 4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
         <input id="search" type="search" placeholder="Search employee services…" autocomplete="off" aria-label="Search employee services">
-        <span class="enter-hint"><kbd>Enter</kbd> app or Google</span>
+        <span class="enter-hint"><span id="search-brand" class="search-brand google-brand" aria-hidden="true"><img src="icons/GoogleWordmark.svg" alt=""></span></span>
       </form>
     </header>
     <main id="groups">
@@ -154,25 +183,28 @@
         <div class="group-head"><h2>AppSheet</h2><span class="group-count"></span><span class="group-rule"></span><span class="group-actions"><button type="button" class="group-move" data-direction="up" aria-label="Move AppSheet section up" title="Move section up">↑</button><button type="button" class="group-move" data-direction="down" aria-label="Move AppSheet section down" title="Move section down">↓</button></span></div>
         <div class="grid" aria-label="AppSheet apps">
           <a class="tile" draggable="true" data-id="tp" data-alias="TP" href="https://www.appsheet.com/start/0ce6e650-0ac9-4b72-8e9a-15bd1610a6d8#appName=TripPlanner-2337523&amp;group=%5B%7B%22Column%22%3A%22Status%20by%20Date%22%2C%22Order%22%3A%22Ascending%22%7D%5D&amp;page=fastTable&amp;sort=%5B%7B%22Column%22%3A%22Depart%20Date%22%2C%22Order%22%3A%22Ascending%22%7D%5D&amp;table=Tours&amp;view=Tours" target="_blank" rel="noopener noreferrer" aria-label="Trip Planner (TP), opens in a new tab">
-            <span class="tile-icon" style="--icon-bg:#edf2ff;--icon-fg:#4166c5">TP</span><span class="tile-copy"><span class="tile-title">Trip Planner</span><span class="tile-subtitle">Tours and departures</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span>
+            <span class="tile-icon appsheet-brand"><img src="icons/TP.png" alt=""></span><span class="tile-copy"><span class="tile-title">Trip Planner</span><span class="tile-subtitle">Tours and departures</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span>
           </a>
           <a class="tile" draggable="true" data-id="cl" data-alias="CL" href="https://www.appsheet.com/start/0ce6e650-0ac9-4b72-8e9a-15bd1610a6d8#appName=Clients-2337523&amp;group=%5B%5D&amp;page=fastTable&amp;sort=%5B%7B%22Column%22%3A%22Depart%20Date%22%2C%22Order%22%3A%22Ascending%22%7D%5D&amp;table=Current%20Tours&amp;view=Tours" target="_blank" rel="noopener noreferrer" aria-label="Clients (CL), opens in a new tab">
-            <span class="tile-icon" style="--icon-bg:#eaf7f4;--icon-fg:#23836e">CL</span><span class="tile-copy"><span class="tile-title">Clients</span><span class="tile-subtitle">Current tour clients</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span>
+            <span class="tile-icon appsheet-brand"><img src="icons/CL.png" alt=""></span><span class="tile-copy"><span class="tile-title">Clients</span><span class="tile-subtitle">Current tour clients</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span>
           </a>
           <a class="tile" draggable="true" data-id="rl" data-alias="RL" href="https://www.appsheet.com/start/0ce6e650-0ac9-4b72-8e9a-15bd1610a6d8#appName=RoomingList-2337523&amp;page=dashboard&amp;table=Sheet1&amp;view=Room%20List%20Dashboard" target="_blank" rel="noopener noreferrer" aria-label="Rooming List (RL), opens in a new tab">
-            <span class="tile-icon" style="--icon-bg:#fff2e7;--icon-fg:#bd6b29">RL</span><span class="tile-copy"><span class="tile-title">Rooming List</span><span class="tile-subtitle">Room list dashboard</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span>
+            <span class="tile-icon appsheet-brand"><img src="icons/RL.png" alt=""></span><span class="tile-copy"><span class="tile-title">Rooming List</span><span class="tile-subtitle">Room list dashboard</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span>
           </a>
           <a class="tile" draggable="true" data-id="dockits" data-alias="DK" href="https://www.appsheet.com/start/79f7920b-0b3b-42e8-a061-39ef310ca7f9#appName=DocKits-2337523&amp;page=dashboard&amp;table=Tours&amp;view=Doc+Kit+Dashboard" target="_blank" rel="noopener noreferrer" aria-label="DocKits (DK), opens in a new tab">
-            <span class="tile-icon" style="--icon-bg:#f1edff;--icon-fg:#7050a5">DK</span><span class="tile-copy"><span class="tile-title">DocKits</span><span class="tile-subtitle">Document kits</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span>
+            <span class="tile-icon appsheet-brand"><img src="icons/DK.png" alt=""></span><span class="tile-copy"><span class="tile-title">DocKits</span><span class="tile-subtitle">Document kits</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span>
           </a>
           <a class="tile" draggable="true" data-id="trip-manager" data-alias="TM" href="https://www.appsheet.com/start/8a99eddd-b26f-4088-9eaa-3731e862634a" target="_blank" rel="noopener noreferrer" aria-label="Trip Manager (TM), opens in a new tab">
-            <span class="tile-icon" style="--icon-bg:#e8f4fb;--icon-fg:#36789e">TM</span><span class="tile-copy"><span class="tile-title">Trip Manager</span><span class="tile-subtitle">Trip management</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span>
+            <span class="tile-icon appsheet-brand"><img src="icons/TM.png" alt=""></span><span class="tile-copy"><span class="tile-title">Trip Manager</span><span class="tile-subtitle">Trip management</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span>
           </a>
           <a class="tile" draggable="true" data-id="accounting" data-alias="AC" href="https://www.appsheet.com/start/227ae5ad-6c99-49e6-a730-6b58c17543fc" target="_blank" rel="noopener noreferrer" aria-label="Accounting (AC), opens in a new tab">
-            <span class="tile-icon" style="--icon-bg:#eaf6ed;--icon-fg:#25864e">AC</span><span class="tile-copy"><span class="tile-title">Accounting</span><span class="tile-subtitle">Accounting tools</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span>
+            <span class="tile-icon appsheet-brand"><img src="icons/AC.png" alt=""></span><span class="tile-copy"><span class="tile-title">Accounting</span><span class="tile-subtitle">Accounting tools</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span>
           </a>
           <a class="tile" draggable="true" data-id="tour-director" data-alias="TD" href="https://www.appsheet.com/start/c9b4e778-d294-4ea3-909d-4e1c04994084?platform=desktop" target="_blank" rel="noopener noreferrer" aria-label="Tour Director (TD), opens in a new tab">
-            <span class="tile-icon" style="--icon-bg:#fff2e7;--icon-fg:#bd6b29">TD</span><span class="tile-copy"><span class="tile-title">Tour Director</span><span class="tile-subtitle">Tour director tools</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span>
+            <span class="tile-icon appsheet-brand"><img src="icons/TD.png" alt=""></span><span class="tile-copy"><span class="tile-title">Tour Director</span><span class="tile-subtitle">Tour director tools</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span>
+          </a>
+          <a class="tile" draggable="true" data-id="guest-info" data-alias="GI Guest Info" data-new-app="true" href="https://www.appsheet.com/start/733d1acf-40c4-4e53-ad45-6e1e8ebd958b" target="_blank" rel="noopener noreferrer" aria-label="Guest Info (GI), opens in a new tab">
+            <span class="tile-icon appsheet-brand"><img src="icons/GI.png" alt=""></span><span class="tile-copy"><span class="tile-title">Guest Info</span><span class="tile-subtitle">Guest information</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span>
           </a>
         </div>
       </section>
@@ -194,15 +226,15 @@
       <section class="group" data-group="PublicMZT">
         <div class="group-head"><h2>PublicMZT</h2><span class="group-count"></span><span class="group-rule"></span><span class="group-actions"><button type="button" class="group-move" data-direction="up" aria-label="Move PublicMZT section up" title="Move section up">↑</button><button type="button" class="group-move" data-direction="down" aria-label="Move PublicMZT section down" title="Move section down">↓</button></span></div>
         <div class="grid" aria-label="Public MZT websites">
-          <a class="tile" draggable="true" data-id="mzt-site" href="https://milezerotours.com/" target="_blank" rel="noopener noreferrer"><span class="tile-icon" style="--icon-bg:#fff3e8;--icon-fg:#bd6b29">MZT</span><span class="tile-copy"><span class="tile-title">Mile Zero Tours</span><span class="tile-subtitle">Public website</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span></a>
-          <a class="tile" draggable="true" data-id="document-buffet" href="https://api.milezerotours.com/buffet" target="_blank" rel="noopener noreferrer"><span class="tile-icon" style="--icon-bg:#f3edff;--icon-fg:#7b55b7">DB</span><span class="tile-copy"><span class="tile-title">Document Buffet</span><span class="tile-subtitle">Document tools</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span></a>
+          <a class="tile" draggable="true" data-id="mzt-site" href="https://milezerotours.com/" target="_blank" rel="noopener noreferrer"><span class="tile-icon bundled-brand"><img src="icons/MZTICON.png" alt=""></span><span class="tile-copy"><span class="tile-title">Mile Zero Tours</span><span class="tile-subtitle">Public website</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span></a>
+          <a class="tile" draggable="true" data-id="document-buffet" href="https://api.milezerotours.com/buffet" target="_blank" rel="noopener noreferrer"><span class="tile-icon bundled-brand"><img src="icons/DocumentBuffet.png" alt=""></span><span class="tile-copy"><span class="tile-title">Document Buffet</span><span class="tile-subtitle">Document tools</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span></a>
         </div>
       </section>
 
       <section class="group" data-group="PrivateMZT">
         <div class="group-head"><h2>PrivateMZT</h2><span class="group-count"></span><span class="group-rule"></span><span class="group-actions"><button type="button" class="group-move" data-direction="up" aria-label="Move PrivateMZT section up" title="Move section up">↑</button><button type="button" class="group-move" data-direction="down" aria-label="Move PrivateMZT section down" title="Move section down">↓</button></span></div>
         <div class="grid" aria-label="Private MZT websites">
-          <a class="tile" draggable="true" data-id="mzt-data" href="https://api.milezerotours.com/data" target="_blank" rel="noopener noreferrer"><span class="tile-icon" style="--icon-bg:#fff0ef;--icon-fg:#c44e57">A</span><span class="tile-copy"><span class="tile-title">MZT Analytics</span><span class="tile-subtitle">Private website · password protected</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span></a>
+          <a class="tile" draggable="true" data-id="mzt-data" href="https://api.milezerotours.com/data" target="_blank" rel="noopener noreferrer"><span class="tile-icon bundled-brand"><img src="icons/Analytics.png" alt=""></span><span class="tile-copy"><span class="tile-title">MZT Analytics</span><span class="tile-subtitle">Private website · password protected</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span></a>
           <a class="tile" draggable="true" data-id="converge-classic" data-icon-mode="favicon" href="https://www.convergepay.com/converge-webapp/" target="_blank" rel="noopener noreferrer"><span class="tile-icon" style="--icon-bg:#edf5ec;--icon-fg:#267653">CC</span><span class="tile-copy"><span class="tile-title">Converge Payments (Classic)</span><span class="tile-subtitle">Payment processing</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span></a>
           <a class="tile" draggable="true" data-id="mzt-payments" data-icon-mode="favicon" data-initials="MZT" href="https://api.milezerotours.com/payments" target="_blank" rel="noopener noreferrer"><span class="tile-icon" style="--icon-bg:#edf5ec;--icon-fg:#267653">MZT</span><span class="tile-copy"><span class="tile-title">MZT Payments (New)</span><span class="tile-subtitle">MZT payment portal</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span></a>
           <a class="tile" draggable="true" data-id="manulife" data-icon-mode="favicon" href="https://www.igoinsured.com/" target="_blank" rel="noopener noreferrer"><span class="tile-icon" style="--icon-bg:#edf5ec;--icon-fg:#267653">MI</span><span class="tile-copy"><span class="tile-title">Manulife Insurance</span><span class="tile-subtitle">Insurance portal</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span></a>
@@ -226,6 +258,17 @@
         <button class="save" type="submit">Save app</button>
       </div>
     </form>
+  </dialog>
+  <dialog id="new-apps-dialog" aria-labelledby="new-apps-title">
+    <div class="dialog-inner">
+      <h2 id="new-apps-title">New apps are available</h2>
+      <p class="dialog-note">These tools were added to the Employee Center:</p>
+      <ul id="new-apps-list" class="new-app-list"></ul>
+      <div class="dialog-actions">
+        <button id="ignore-new-apps" type="button">Ignore</button>
+        <button id="customize-new-apps" class="save" type="button">Customize</button>
+      </div>
+    </div>
   </dialog>
   <section id="welcome-screen" class="welcome-screen" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
     <form id="profile-form" class="welcome-card">
@@ -252,13 +295,16 @@
       const groups = [...document.querySelectorAll('.group')];
       const dialog = document.getElementById('app-dialog');
       const appForm = document.getElementById('app-form');
+      const newAppsDialog = document.getElementById('new-apps-dialog');
       const editToggle = document.getElementById('edit-toggle');
       const viewToggle = document.getElementById('view-toggle');
+      const searchBrand = document.getElementById('search-brand');
       const removeButton = document.getElementById('remove-app');
       const catalogKey = 'mzt-employee-center-catalog-v1';
       const orderKey = 'mzt-employee-center-order-v1';
       const sectionOrderKey = 'mzt-employee-center-section-order-v1';
       const profileKey = 'mzt-employee-center-profile-v1';
+      const reviewedNewAppsKey = 'mzt-employee-center-reviewed-new-apps-v1';
       const viewKey = 'mzt-employee-center-view-v1';
       let tiles = [...document.querySelectorAll('.tile')];
       let editMode = false;
@@ -266,6 +312,7 @@
       let dragged = null;
       let savedProfile = null;
       let selectedAppIds = new Set();
+      let pendingNewAppIds = [];
 
       const words = value => value.toLocaleLowerCase().match(/[a-z0-9]+/g) || [];
       const normalizeText = value => value.toLocaleLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -335,8 +382,9 @@
         tile.dataset.iconMode = record.iconMode || 'initials';
         if (record.custom) tile.dataset.custom = 'true';
         moveTile(tile, record.group);
-        if (record.iconMode === 'favicon') loadFavicon(tile, record.url, record.name);
-        else if (record.iconMode === 'initials') showInitials(tile, record.name);
+        const hasBundledAppIcon = Boolean(tile.querySelector('.tile-icon img[src^="icons/"]'));
+        if (!hasBundledAppIcon && record.iconMode === 'favicon') loadFavicon(tile, record.url, record.name);
+        else if (!hasBundledAppIcon && record.iconMode === 'initials') showInitials(tile, record.name);
       }
 
       function createTile(record) {
@@ -449,9 +497,9 @@
         }
       }
 
-      function renderAppChoices(selected = []) {
+      function renderAppChoices(selected = [], includeIds = []) {
         const container = document.getElementById('appsheet-choices');
-        const selectedIds = new Set(selected);
+        const selectedIds = new Set([...selected, ...includeIds]);
         container.replaceChildren();
         const appSheetGroup = groups.find(group => group.dataset.group === 'AppSheet');
         for (const tile of appSheetGroup.querySelectorAll('.tile')) {
@@ -470,7 +518,7 @@
         }
       }
 
-      function showProfileForm(profile = null) {
+      function showProfileForm(profile = null, includeIds = []) {
         const editing = Boolean(profile);
         document.getElementById('welcome-title').textContent = editing ? 'Your employee center profile' : 'Welcome to your work hub';
         document.querySelector('.welcome-copy').textContent = editing
@@ -479,7 +527,7 @@
         document.getElementById('employee-name').value = profile?.name || '';
         document.getElementById('profile-error').textContent = '';
         document.getElementById('cancel-profile').hidden = !editing;
-        renderAppChoices(profile?.apps || []);
+        renderAppChoices(profile?.apps || [], includeIds);
         document.getElementById('welcome-screen').hidden = false;
         document.getElementById('employee-name').focus();
       }
@@ -490,6 +538,39 @@
         document.getElementById('personal-heading').textContent = `Welcome, ${profile.name}`;
         document.getElementById('welcome-screen').hidden = true;
         applyFilter();
+      }
+
+      function getReviewedNewAppIds() {
+        try {
+          const stored = JSON.parse(localStorage.getItem(reviewedNewAppsKey) || '[]');
+          return new Set(Array.isArray(stored) ? stored.filter(id => typeof id === 'string') : []);
+        } catch { return new Set(); }
+      }
+
+      function rememberReviewedNewApps(ids) {
+        if (!ids.length) return;
+        const reviewed = getReviewedNewAppIds();
+        ids.forEach(id => reviewed.add(id));
+        try { localStorage.setItem(reviewedNewAppsKey, JSON.stringify([...reviewed])); } catch { /* Keep the page usable if storage is unavailable. */ }
+      }
+
+      function showNewAppsNotice() {
+        const reviewed = getReviewedNewAppIds();
+        pendingNewAppIds = tiles
+          .filter(tile => tile.dataset.newApp === 'true' && !reviewed.has(tile.dataset.id))
+          .map(tile => tile.dataset.id);
+        if (!pendingNewAppIds.length) return;
+        const list = document.getElementById('new-apps-list');
+        list.replaceChildren();
+        for (const id of pendingNewAppIds) {
+          const tile = tiles.find(item => item.dataset.id === id);
+          if (!tile) continue;
+          const item = document.createElement('li');
+          const alias = tile.dataset.alias ? ` (${tile.dataset.alias.split('|')[0]})` : '';
+          item.textContent = `${tile.querySelector('.tile-title').textContent}${alias}`;
+          list.append(item);
+        }
+        newAppsDialog.showModal();
       }
 
       function applyFilter() {
@@ -511,6 +592,7 @@
         }
         empty.style.display = matches ? 'none' : 'block';
         updateSectionControls();
+        updateSearchBrand();
       }
 
       function findConfidentTile(query) {
@@ -525,6 +607,29 @@
           const candidates = [title, ...aliases].map(words);
           return candidates.some(candidateWords => queryWords.every(word => word.length >= 3 && candidateWords.some(titleWord => titleWord.startsWith(word))));
         });
+      }
+
+      function updateSearchBrand() {
+        const matches = findConfidentTile(search.value.trim());
+        const tile = matches.length === 1 ? matches[0] : null;
+        let brand = 'google';
+        if (tile) {
+          const id = tile.dataset.id;
+          let host = '';
+          try { host = new URL(tile.href).hostname.toLowerCase(); } catch { /* Use the tile ID below. */ }
+          if (id === 'converge-classic' || host.includes('convergepay.com')) brand = 'converge';
+          else if (id === 'manulife' || host.includes('igoinsured.com') || host.includes('manulife')) brand = 'manulife';
+          else if (host === 'google.com' || host.endsWith('.google.com')) brand = 'google';
+          else brand = 'mzt';
+        }
+        const assets = {
+          google: 'icons/GoogleWordmark.svg',
+          mzt: 'icons/MZTWordmark.png',
+          converge: 'icons/ConvergeWordmark.png',
+          manulife: 'icons/Manulife.webp'
+        };
+        searchBrand.className = `search-brand ${brand}-brand`;
+        searchBrand.querySelector('img').src = assets[brand];
       }
 
       form.addEventListener('submit', event => {
@@ -574,6 +679,15 @@
       viewToggle.addEventListener('click', () => setAllAppsView(!groupsRoot.classList.contains('all-apps')));
       document.getElementById('add-app').addEventListener('click', () => openEditor());
       document.getElementById('profile-settings').addEventListener('click', () => showProfileForm(savedProfile));
+      document.getElementById('ignore-new-apps').addEventListener('click', () => {
+        rememberReviewedNewApps(pendingNewAppIds);
+        pendingNewAppIds = [];
+        newAppsDialog.close();
+      });
+      document.getElementById('customize-new-apps').addEventListener('click', () => {
+        newAppsDialog.close();
+        showProfileForm(savedProfile, pendingNewAppIds);
+      });
       document.getElementById('cancel-profile').addEventListener('click', () => {
         document.getElementById('welcome-screen').hidden = true;
       });
@@ -586,11 +700,15 @@
           return;
         }
         const apps = [...document.querySelectorAll('#appsheet-choices input:checked')].map(input => input.value);
-        const profile = { name, apps };
+        const profile = { ...(savedProfile || {}), name, apps };
         try { localStorage.setItem(profileKey, JSON.stringify(profile)); }
         catch {
           document.getElementById('profile-error').textContent = 'Could not save this profile in browser storage. Please try again.';
           return;
+        }
+        if (pendingNewAppIds.length) {
+          rememberReviewedNewApps(pendingNewAppIds);
+          pendingNewAppIds = [];
         }
         applyProfile(profile);
       });
@@ -686,7 +804,7 @@
 
       tiles.forEach(registerDrag);
       restoreCatalog();
-      for (const tile of tiles.filter(item => item.dataset.iconMode === 'favicon')) {
+      for (const tile of tiles.filter(item => item.dataset.iconMode === 'favicon' && !item.querySelector('.tile-icon img[src^="icons/"]'))) {
         loadFavicon(tile, tile.href, tile.querySelector('.tile-title').textContent);
       }
       restoreSectionOrder();
@@ -696,7 +814,10 @@
       setAllAppsView(allAppsView, false);
       try {
         const profile = JSON.parse(localStorage.getItem(profileKey) || 'null');
-        if (profile && typeof profile.name === 'string' && profile.name.trim()) applyProfile(profile);
+        if (profile && typeof profile.name === 'string' && profile.name.trim()) {
+          applyProfile(profile);
+          showNewAppsNotice();
+        }
         else showProfileForm();
       } catch { showProfileForm(); }
       applyFilter();
