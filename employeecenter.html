@@ -52,6 +52,8 @@
     .search-brand.google-brand img { width: 100px; height: auto; max-width: none; max-height: none; }
     .search-brand.converge-brand { width: 104px; height: 30px; }
     .search-brand.converge-brand img { width: 104px; height: auto; max-width: none; max-height: none; }
+    .search-brand.slack-brand { width: 100px; height: 30px; }
+    .search-brand.slack-brand img { width: 100px; height: auto; max-width: none; max-height: none; }
     .search-brand.manulife-brand { width: 140px; height: 30px; }
     .search-brand.manulife-brand img { width: 140px; height: auto; max-width: none; max-height: none; }
     .search-brand.mzt-brand { width: 152px; height: 30px; }
@@ -146,6 +148,8 @@
       .search-brand.google-brand img { width: 78px; }
       .search-brand.converge-brand { width: 82px; height: 25px; }
       .search-brand.converge-brand img { width: 82px; }
+      .search-brand.slack-brand { width: 82px; height: 25px; }
+      .search-brand.slack-brand img { width: 82px; }
       .search-brand.manulife-brand { width: 112px; height: 25px; }
       .search-brand.manulife-brand img { width: 112px; }
       .search-brand.mzt-brand { width: 118px; height: 25px; }
@@ -210,8 +214,8 @@
       </section>
 
       <section class="group" data-group="Google">
-        <div class="group-head"><h2>Google</h2><span class="group-count"></span><span class="group-rule"></span><span class="group-actions"><button type="button" class="group-move" data-direction="up" aria-label="Move Google section up" title="Move section up">↑</button><button type="button" class="group-move" data-direction="down" aria-label="Move Google section down" title="Move section down">↓</button></span></div>
-        <div class="grid" aria-label="Google services">
+        <div class="group-head"><h2>Business Apps</h2><span class="group-count"></span><span class="group-rule"></span><span class="group-actions"><button type="button" class="group-move" data-direction="up" aria-label="Move Business Apps section up" title="Move section up">↑</button><button type="button" class="group-move" data-direction="down" aria-label="Move Business Apps section down" title="Move section down">↓</button></span></div>
+        <div class="grid" aria-label="Business Apps services">
           <a class="tile" draggable="true" data-id="gmail" data-alias="Google Mail" href="https://mail.google.com/" target="_blank" rel="noopener noreferrer"><span class="tile-icon google-brand"><img src="https://commons.wikimedia.org/wiki/Special:FilePath/Gmail_icon_(2026).svg" alt=""></span><span class="tile-copy"><span class="tile-title">Gmail</span><span class="tile-subtitle">Email and communication</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span></a>
           <a class="tile" draggable="true" data-id="drive" data-alias="Google Drive" href="https://drive.google.com/" target="_blank" rel="noopener noreferrer"><span class="tile-icon google-brand"><img src="https://commons.wikimedia.org/wiki/Special:FilePath/Google_Drive_icon_(2026).svg" alt=""></span><span class="tile-copy"><span class="tile-title">Drive</span><span class="tile-subtitle">Files and shared folders</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span></a>
           <a class="tile" draggable="true" data-id="calendar" data-alias="Google Calendar" href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer"><span class="tile-icon google-brand"><img src="https://commons.wikimedia.org/wiki/Special:FilePath/Google_Calendar_icon_(2026).svg" alt=""></span><span class="tile-copy"><span class="tile-title">Calendar</span><span class="tile-subtitle">Schedule and events</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span></a>
@@ -220,6 +224,7 @@
           <a class="tile" draggable="true" data-id="forms" data-alias="Google Forms" href="https://forms.google.com/" target="_blank" rel="noopener noreferrer"><span class="tile-icon google-brand"><img src="https://commons.wikimedia.org/wiki/Special:FilePath/Google_Forms_icon_(2026).svg" alt=""></span><span class="tile-copy"><span class="tile-title">Forms</span><span class="tile-subtitle">Forms and responses</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span></a>
           <a class="tile" draggable="true" data-id="meet" data-alias="Google Meet" href="https://meet.google.com/" target="_blank" rel="noopener noreferrer"><span class="tile-icon google-brand"><img src="https://commons.wikimedia.org/wiki/Special:FilePath/Google_Meet_icon_(2026).svg" alt=""></span><span class="tile-copy"><span class="tile-title">Meet</span><span class="tile-subtitle">Video meetings</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span></a>
           <a class="tile" draggable="true" data-id="contacts" data-alias="Google Contacts" href="https://contacts.google.com/" target="_blank" rel="noopener noreferrer"><span class="tile-icon google-brand"><img src="https://commons.wikimedia.org/wiki/Special:FilePath/Google_Contacts_icon_(2022).svg" alt=""></span><span class="tile-copy"><span class="tile-title">Contacts</span><span class="tile-subtitle">People and contact details</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span></a>
+          <a class="tile" draggable="true" data-id="slack" data-alias="Slack" href="https://milezerotours.slack.com/" target="_blank" rel="noopener noreferrer" aria-label="Slack, opens in a new tab"><span class="tile-icon"><img src="icons/SlackIcon.svg" alt=""></span><span class="tile-copy"><span class="tile-title">Slack</span><span class="tile-subtitle">Team messaging</span></span><span class="tile-arrow" aria-hidden="true">↗</span><span class="drag-hint">Drag to reorder</span></a>
         </div>
       </section>
 
@@ -250,7 +255,7 @@
       <p class="dialog-note">Add a name and link. The tile will try to use the site's favicon.</p>
       <label class="field">App name<input id="app-name" name="name" required maxlength="48" placeholder="e.g. Booking Portal"></label>
       <label class="field">App link<input id="app-url" name="url" type="url" required placeholder="https://example.com"></label>
-      <label class="field">Group<select id="app-group" name="group"><option>AppSheet</option><option>Google</option><option>PublicMZT</option><option>PrivateMZT</option></select></label>
+      <label class="field">Group<select id="app-group" name="group"><option>AppSheet</option><option value="Google">Business Apps</option><option>PublicMZT</option><option>PrivateMZT</option></select></label>
       <label class="field">Small description <input id="app-subtitle" name="subtitle" maxlength="64" placeholder="Optional"></label>
       <div class="dialog-actions">
         <button id="remove-app" class="remove" type="button" hidden>Remove</button>
@@ -618,6 +623,7 @@
           let host = '';
           try { host = new URL(tile.href).hostname.toLowerCase(); } catch { /* Use the tile ID below. */ }
           if (id === 'converge-classic' || host.includes('convergepay.com')) brand = 'converge';
+          else if (id === 'slack' || host.endsWith('.slack.com')) brand = 'slack';
           else if (id === 'manulife' || host.includes('igoinsured.com') || host.includes('manulife')) brand = 'manulife';
           else if (host === 'google.com' || host.endsWith('.google.com')) brand = 'google';
           else brand = 'mzt';
@@ -626,6 +632,7 @@
           google: 'icons/GoogleWordmark.svg',
           mzt: 'icons/MZTWordmark.png',
           converge: 'icons/ConvergeWordmark.png',
+          slack: 'icons/SlackWordmark.svg',
           manulife: 'icons/Manulife.webp'
         };
         searchBrand.className = `search-brand ${brand}-brand`;
