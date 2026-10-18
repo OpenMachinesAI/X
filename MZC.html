@@ -188,7 +188,24 @@
     .update-summary { margin:0; color:#e0e6dd; font-size:13px; white-space:pre-wrap; overflow-wrap:anywhere; }
     .update-time { display:block; margin-top:10px; color:#b5c1b1; font-size:11px; }
     .update-details-toggle { margin-top:12px; padding:7px 12px; border:0; border-radius:5px; background:#f3f5f0; color:#202720; font:inherit; font-size:12px; font-weight:750; cursor:pointer; }
-    .update-details { margin:12px 0 0; padding:12px; border-radius:6px; background:#202622; color:#e9eee4; font:12px/1.45 ui-monospace,monospace; white-space:pre-wrap; overflow-wrap:anywhere; }
+    #update-details-dialog { width:100vw; max-width:none; height:100dvh; max-height:none; margin:0; border:0; border-radius:0; background:#f4f8ef; color:#263529; }
+    #update-details-dialog::backdrop { background:#162119b8; backdrop-filter:blur(4px); }
+    .details-dialog-shell { display:flex; width:min(1000px,100%); height:100%; flex-direction:column; margin:auto; }
+    .details-dialog-head { position:sticky; top:0; display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding:24px clamp(20px,5vw,54px); border-bottom:1px solid #d8e4d2; background:#f4f8eff2; }
+    .details-dialog-kicker { margin:0 0 5px; color:#66814e; font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    .details-dialog-head h2 { margin:0; color:#263529; font-size:clamp(22px,4vw,32px); line-height:1.15; }
+    .details-dialog-time { margin:7px 0 0; color:#788473; font-size:13px; }
+    .details-close { flex:0 0 auto; width:42px; height:42px; border:1px solid #cbd8c5; border-radius:50%; background:#fff; color:#314533; font-size:24px; cursor:pointer; }
+    .details-dialog-body { flex:1; overflow:auto; padding:22px clamp(20px,5vw,54px) 45px; }
+    .details-empty { color:#71806d; font-size:14px; }
+    .detail-section { margin:0 0 20px; padding:18px; border:1px solid #dbe5d7; border-radius:12px; background:#fff; box-shadow:0 4px 14px #31522b0b; }
+    .detail-section h3 { margin:0 0 13px; color:#31563b; font-size:16px; }
+    .detail-subsection { margin:12px 0 0; padding:14px; border-radius:9px; background:#f5f8f2; }
+    .detail-subsection h4 { margin:0 0 10px; color:#536c47; font-size:14px; }
+    .detail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    .detail-item { min-width:0; padding:10px 12px; border-radius:8px; background:#f5f8f2; }
+    .detail-label { margin-bottom:3px; color:#798473; font-size:11px; font-weight:750; }
+    .detail-value { color:#28372b; font-size:14px; white-space:pre-wrap; overflow-wrap:anywhere; }
     .updates-status { margin:5px 0 12px; color:#586653; font-size:13px; }
     #updates-page[hidden] { display:none; }
     .apps-page .group { margin-top:17px; }
@@ -219,6 +236,7 @@
       #search { height:62px; padding-right:115px; font-size:15px; }
       .apps-page,.updates-page { padding:12px; }
       .apps-heading h2,.updates-heading h2 { font-size:21px; }
+      .detail-grid { grid-template-columns:1fr; }
     }
 
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
@@ -336,6 +354,15 @@
       <div class="dialog-actions"><button id="migration-skip" type="button">Start fresh</button><button id="migration-copy" class="save" type="button">Migrate my setup</button></div>
     </div>
   </dialog>
+  <dialog id="update-details-dialog" aria-labelledby="details-title">
+    <div class="details-dialog-shell">
+      <header class="details-dialog-head">
+        <div><p id="details-type" class="details-dialog-kicker">Form update</p><h2 id="details-title">Submission details</h2><p id="details-time" class="details-dialog-time"></p></div>
+        <button id="details-close" class="details-close" type="button" aria-label="Close details">×</button>
+      </header>
+      <div id="details-content" class="details-dialog-body"></div>
+    </div>
+  </dialog>
   <dialog id="app-dialog"  aria-labelledby="dialog-title">
     <form id="app-form" class="dialog-inner">
       <h2 id="dialog-title">Add an app</h2>
@@ -442,6 +469,72 @@
       const appsTab = document.getElementById('apps-tab');
       const updatesPage = document.getElementById('updates-page');
       const appsPage = document.getElementById('apps-page');
+      const detailsDialog = document.getElementById('update-details-dialog');
+      const detailLabels = {
+        timestamp:'Submitted', tour:'Tour', name:'Name', tour_name:'Tour', tour_dates:'Tour dates', tour_code:'Tour code',
+        number_of_people:'Number of people', travellers:'Travellers', questions_or_dietary:'Questions or dietary needs',
+        terms_agreed:'Travel terms agreed', cancel_policy_agreed:'Cancellation policy agreed', travel_terms_agreed:'Travel terms agreed',
+        preferred_name:'Preferred name', first_name:'First name', last_name:'Last name', dob:'Date of birth',
+        address:'Address', line1:'Street address', city:'City', province:'Province', province_code:'Province', postal_code:'Postal code',
+        email:'Email', phone:'Phone', contact:'Contact details', label:'Traveller', address_reused:'Address reused', contact_reused:'Contact reused',
+        comments:'Comments', wants_catalog_mailed:'Brochure requested', preferred_contact_method:'Preferred contact method',
+        wants_call_when_available:'Call when available', booking_number:'Booking number', website:'Website', question:'Question'
+      };
+      function prettyDetailLabel(key) {
+        return detailLabels[key] || String(key).replace(/_/g,' ').replace(/\b\w/g, character => character.toUpperCase());
+      }
+      function appendDetail(container, key, value, depth = 0) {
+        if (value === null || value === undefined || value === '') return;
+        if (Array.isArray(value)) {
+          const section = document.createElement(depth ? 'div' : 'section');
+          section.className = depth ? 'detail-subsection' : 'detail-section';
+          const heading = document.createElement(depth ? 'h4' : 'h3');
+          heading.textContent = prettyDetailLabel(key);
+          section.append(heading);
+          value.forEach((item,index) => {
+            if (item && typeof item === 'object') {
+              const sub = document.createElement('div'); sub.className='detail-subsection';
+              const subTitle=document.createElement('h4'); subTitle.textContent=prettyDetailLabel(item.label || ('Traveller '+(index+1))); sub.append(subTitle);
+              for (const [childKey,childValue] of Object.entries(item)) if (childKey !== 'label') appendDetail(sub,childKey,childValue,depth+1);
+              section.append(sub);
+            } else appendDetail(section,String(index+1),item,depth+1);
+          });
+          container.append(section);
+          return;
+        }
+        if (typeof value === 'object') {
+          const section = document.createElement(depth ? 'div' : 'section');
+          section.className = depth ? 'detail-subsection' : 'detail-section';
+          const heading = document.createElement(depth ? 'h4' : 'h3'); heading.textContent=prettyDetailLabel(key); section.append(heading);
+          for (const [childKey,childValue] of Object.entries(value)) appendDetail(section,childKey,childValue,depth+1);
+          container.append(section);
+          return;
+        }
+        const item = document.createElement('div'); item.className='detail-item';
+        const label = document.createElement('div'); label.className='detail-label'; label.textContent=prettyDetailLabel(key);
+        const text = document.createElement('div'); text.className='detail-value';
+        text.textContent = typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value);
+        item.append(label,text);
+        let grid = container.querySelector(':scope > .detail-grid');
+        if (!grid) { grid=document.createElement('div'); grid.className='detail-grid'; container.append(grid); }
+        grid.append(item);
+      }
+      function openUpdateDetails(item) {
+        document.getElementById('details-type').textContent=item.type === 'Tree Opt Out' ? 'Tree Request' : (item.type || 'Form update');
+        document.getElementById('details-title').textContent=item.title === 'Tree Opt-Out Request' ? 'Tree Request' : (item.title || 'Submission details');
+        const time = document.getElementById('details-time');
+        time.dateTime=item.timestamp || '';
+        time.textContent=item.timestamp ? new Date(item.timestamp).toLocaleString() : '';
+        const content=document.getElementById('details-content'); content.replaceChildren();
+        const details=item.details && typeof item.details === 'object' ? item.details : {};
+        if (Object.keys(details).length) {
+          for (const [key,value] of Object.entries(details)) appendDetail(content,key,value);
+        } else {
+          const empty=document.createElement('p'); empty.className='details-empty'; empty.textContent='No additional details were saved for this submission.'; content.append(empty);
+        }
+        detailsDialog.showModal();
+      }
+      document.getElementById('details-close').addEventListener('click',() => detailsDialog.close());
       let updateKeyWaits = 0;
       function selectPage(name) {
         const updates = name === 'updates';
@@ -491,8 +584,10 @@
           badge.textContent=String(events.length); badge.hidden=!events.length;
           for (const item of events) {
             const card=document.createElement('article'); card.className='update-card';
-            const type=document.createElement('div'); type.className='update-type'; type.textContent=item.type||'Form update';
-            const title=document.createElement('h3'); title.textContent=item.title||'New submission';
+            const displayType = item.type === 'Tree Opt Out' ? 'Tree Request' : (item.type || 'Form update');
+            const displayTitle = item.title === 'Tree Opt-Out Request' ? 'Tree Request' : (item.title || 'New submission');
+            const type=document.createElement('div'); type.className='update-type'; type.textContent=displayType;
+            const title=document.createElement('h3'); title.textContent=displayTitle;
             const summary=document.createElement('p'); summary.className='update-summary'; summary.textContent=item.summary||'';
             const time=document.createElement('time'); time.className='update-time'; time.dateTime=item.timestamp; time.textContent=new Date(item.timestamp).toLocaleString();
 
@@ -500,9 +595,8 @@
             if (item.details && Object.keys(item.details).length) {
               const reveal=document.createElement('button');
               reveal.type='button'; reveal.className='update-details-toggle'; reveal.textContent='Review Details';
-              const detail=document.createElement('pre'); detail.className='update-details'; detail.hidden=true; detail.textContent=JSON.stringify(item.details,null,2);
-              reveal.addEventListener('click',() => { detail.hidden=!detail.hidden; reveal.textContent=detail.hidden?'Review Details':'Hide Details'; });
-              card.append(reveal,detail);
+              reveal.addEventListener('click',() => openUpdateDetails(item));
+              card.append(reveal);
             }
             list.append(card);
           }
