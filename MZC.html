@@ -194,6 +194,9 @@
     .apps-page .group { margin-top:17px; }
     .apps-page .group:first-child { margin-top:0; }
     .apps-page .tile { border-radius:7px; background:#fff; }
+    .notifications-disabled #updates-page { display:none !important; }
+    .notifications-disabled .page-tabs { display:none !important; }
+    .notifications-disabled .apps-page { margin-left:0 !important; }
     .welcome-screen { background:linear-gradient(145deg,#eff6e8,#b5e45b); }
     footer { clear:both; color:#697563; padding-top:15px; }
     @media (min-width:1000px) {
@@ -368,6 +371,8 @@
       <input id="employee-name" name="name" maxlength="48" autocomplete="given-name" required placeholder="Your name">
       <div class="choices-title">Which AppSheet apps do you use?</div>
       <div id="appsheet-choices" class="app-choices"></div>
+      <div class="choices-title">Which updates should appear in your feed?</div>
+      <div id="notification-choices" class="app-choices notification-choices"></div>
       <div id="profile-error" role="alert" aria-live="polite"></div>
       <div class="welcome-actions">
         <button id="cancel-profile" type="button" hidden>Cancel</button>
@@ -401,6 +406,8 @@
       let dragged = null;
       let savedProfile = null;
       let selectedAppIds = new Set();
+      const allNotificationTypes = ['booking','website','other'];
+      let selectedNotificationTypes = new Set(allNotificationTypes);
       let pendingNewAppIds = [];
       const updatesKey = 'mzc-updates-api-key-v1';
       const updatesHeartbeatKey = 'mzc-extension-heartbeat-v1';
@@ -452,6 +459,11 @@
         const list = document.getElementById('updates-list');
         const badge = document.getElementById('updates-badge');
         list.replaceChildren();
+        if (!selectedNotificationTypes.size) {
+          status.textContent = 'Notifications are turned off.';
+          badge.hidden = true;
+          return;
+        }
         let apiKey = '';
         try {
           const beat = Number(localStorage.getItem(updatesHeartbeatKey) || 0);
@@ -471,9 +483,11 @@
           if (response.status === 401) throw new Error('The updates key is not accepted. Ask an administrator to update the extension settings.');
           if (!response.ok) throw new Error('Updates are temporarily unavailable.');
           const data = await response.json();
-          const events = Array.isArray(data.events) ? data.events : [];
+          const allEvents = Array.isArray(data.events) ? data.events : [];
+          const eventCategory = item => item.type === 'Booking' ? 'booking' : item.type === 'Website Question' ? 'website' : 'other';
+          const events = allEvents.filter(item => selectedNotificationTypes.has(eventCategory(item)));
           const windowNote = data.weekend_carryover ? ' (weekend submissions included)' : ' in the last 24 hours';
-          status.textContent = events.length ? events.length+' update'+(events.length===1?'':'s')+windowNote : (data.weekend_carryover ? 'No weekend or recent form updates.' : 'No form updates in the last 24 hours.');
+          status.textContent = events.length ? events.length+' update'+(events.length===1?'':'s')+windowNote : (allEvents.length ? 'No updates match your notification choices.' : (data.weekend_carryover ? 'No weekend or recent form updates.' : 'No form updates in the last 24 hours.'));
           badge.textContent=String(events.length); badge.hidden=!events.length;
           for (const item of events) {
             const card=document.createElement('article'); card.className='update-card';
@@ -495,7 +509,6 @@
         } catch(error) { status.textContent=error.message||'Updates are temporarily unavailable.'; }
       }
       document.getElementById('refresh-updates').addEventListener('click',refreshUpdates);
-      refreshUpdates();
 
 
       const words = value => value.toLocaleLowerCase().match(/[a-z0-9]+/g) || [];
@@ -702,16 +715,44 @@
         }
       }
 
+      function renderNotificationChoices(selected = allNotificationTypes) {
+        const container = document.getElementById('notification-choices');
+        container.replaceChildren();
+        const options = [
+          ['booking','Booking requests'],
+          ['website','Website questions'],
+          ['other','Other form submissions']
+        ];
+        for (const [value,labelText] of options) {
+          const label = document.createElement('label');
+          label.className = 'app-choice';
+          const input = document.createElement('input');
+          input.type = 'checkbox'; input.name = 'notifications'; input.value = value; input.checked = selected.includes(value);
+          label.append(input,document.createTextNode(labelText));
+          container.append(label);
+        }
+      }
+
+      function applyNotificationVisibility() {
+        const enabled = selectedNotificationTypes.size > 0;
+        document.body.classList.toggle('notifications-disabled',!enabled);
+        if (!enabled) {
+          updatesPage.hidden = true;
+          appsPage.hidden = false;
+        }
+      }
+
       function showProfileForm(profile = null, includeIds = []) {
         const editing = Boolean(profile);
         document.getElementById('welcome-title').textContent = editing ? 'Your employee center profile' : 'Welcome to your work hub';
         document.querySelector('.welcome-copy').textContent = editing
-          ? 'Update your name or AppSheet apps whenever you need to.'
+          ? 'Update your name, apps, or notifications whenever you need to.'
           : 'Set up your page once. Your choices are saved in this browser.';
         document.getElementById('employee-name').value = profile?.name || '';
         document.getElementById('profile-error').textContent = '';
         document.getElementById('cancel-profile').hidden = !editing;
         renderAppChoices(profile?.apps || [], includeIds);
+        renderNotificationChoices(Array.isArray(profile?.notifications) ? profile.notifications : allNotificationTypes);
         document.getElementById('welcome-screen').hidden = false;
         document.getElementById('employee-name').focus();
       }
@@ -719,9 +760,12 @@
       function applyProfile(profile) {
         savedProfile = profile;
         selectedAppIds = new Set(Array.isArray(profile.apps) ? profile.apps : []);
+        selectedNotificationTypes = new Set(Array.isArray(profile.notifications) ? profile.notifications : allNotificationTypes);
         document.getElementById('personal-heading').textContent = `Welcome, ${profile.name}`;
         document.getElementById('employee-label').textContent = profile.name;
         document.getElementById('welcome-screen').hidden = true;
+        applyNotificationVisibility();
+        refreshUpdates();
         applyFilter();
       }
 
@@ -887,7 +931,8 @@
           return;
         }
         const apps = [...document.querySelectorAll('#appsheet-choices input:checked')].map(input => input.value);
-        const profile = { ...(savedProfile || {}), name, apps };
+        const notifications = [...document.querySelectorAll('#notification-choices input:checked')].map(input => input.value);
+        const profile = { ...(savedProfile || {}), name, apps, notifications };
         try { localStorage.setItem(profileKey, JSON.stringify(profile)); }
         catch {
           document.getElementById('profile-error').textContent = 'Could not save this profile in browser storage. Please try again.';
