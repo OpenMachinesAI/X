@@ -182,12 +182,16 @@
     .updates-heading p { margin:3px 0 0; color:#687766; font-size:12px; }
     .updates-heading button { border:1px solid #bfd0b7; border-radius:8px; padding:8px 13px; background:#f9fbf5; color:#315837; font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
     .updates-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr)); gap:12px; }
-    .update-card { padding:16px; border:1px solid #344236; border-radius:8px; background:#2d332f; color:#f6f8f2; }
+    .update-card { position:relative; padding:16px 46px 16px 16px; border:1px solid #344236; border-radius:8px; background:#2d332f; color:#f6f8f2; }
     .update-type { color:#c2d7ae; font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
     .update-card h3 { margin:7px 0; font-size:17px; }
     .update-summary { margin:0; color:#e0e6dd; font-size:13px; white-space:pre-wrap; overflow-wrap:anywhere; }
     .update-time { display:block; margin-top:10px; color:#b5c1b1; font-size:11px; }
     .update-details-toggle { margin-top:12px; padding:7px 12px; border:0; border-radius:5px; background:#f3f5f0; color:#202720; font:inherit; font-size:12px; font-weight:750; cursor:pointer; }
+    .update-review-app { display:inline-block; margin:12px 8px 0 0; padding:7px 12px; border:0; border-radius:5px; background:#d9edc8; color:#243b25; font:inherit; font-size:12px; font-weight:750; text-decoration:none; }
+    .update-review-app:hover { background:#c2e2a9; }
+    .notification-dismiss { position:absolute; top:8px; right:8px; display:grid; width:30px; height:30px; place-items:center; border:0; border-radius:50%; background:transparent; color:#d5ded1; font:inherit; font-size:23px; line-height:1; cursor:pointer; }
+    .notification-dismiss:hover { background:#ffffff1a; color:#fff; }
     #update-details-dialog { width:100vw; max-width:none; height:100dvh; max-height:none; margin:0; border:0; border-radius:0; background:#f4f8ef; color:#263529; }
     #update-details-dialog::backdrop { background:#162119b8; backdrop-filter:blur(4px); }
     .details-dialog-shell { display:flex; width:min(1000px,100%); height:100%; flex-direction:column; margin:auto; }
@@ -426,6 +430,7 @@
       const sectionOrderKey = 'mzc-section-order-v1';
       const profileKey = 'mzc-profile-v1';
       const reviewedNewAppsKey = 'mzc-reviewed-new-apps-v1';
+      const dismissedNotificationsKey = 'mzc-dismissed-notifications-v1';
       const viewKey = 'mzc-view-v1';
       let tiles = [...document.querySelectorAll('.tile')];
       let editMode = false;
@@ -435,6 +440,8 @@
       let selectedAppIds = new Set();
       const allNotificationTypes = ['booking','website','other'];
       let selectedNotificationTypes = new Set(allNotificationTypes);
+      let dismissedNotificationIds = new Set();
+      try { dismissedNotificationIds = new Set(JSON.parse(localStorage.getItem(dismissedNotificationsKey) || '[]')); } catch {}
       let pendingNewAppIds = [];
       const updatesKey = 'mzc-updates-api-key-v1';
       const updatesHeartbeatKey = 'mzc-extension-heartbeat-v1';
@@ -578,9 +585,11 @@
           const data = await response.json();
           const allEvents = Array.isArray(data.events) ? data.events : [];
           const eventCategory = item => item.type === 'Booking' ? 'booking' : item.type === 'Website Question' ? 'website' : 'other';
-          const events = allEvents.filter(item => selectedNotificationTypes.has(eventCategory(item)));
+          const selectedEvents = allEvents.filter(item => selectedNotificationTypes.has(eventCategory(item)));
+          const eventId = item => String(item.id || [item.type,item.timestamp,item.title,item.summary].join('|'));
+          const events = selectedEvents.filter(item => !dismissedNotificationIds.has(eventId(item)));
           const windowNote = data.weekend_carryover ? ' (weekend submissions included)' : ' in the last 24 hours';
-          status.textContent = events.length ? events.length+' update'+(events.length===1?'':'s')+windowNote : (allEvents.length ? 'No updates match your notification choices.' : (data.weekend_carryover ? 'No weekend or recent form updates.' : 'No form updates in the last 24 hours.'));
+          status.textContent = events.length ? events.length+' update'+(events.length===1?'':'s')+windowNote : (selectedEvents.length ? 'All matching notifications have been dismissed.' : (allEvents.length ? 'No updates match your notification choices.' : (data.weekend_carryover ? 'No weekend or recent form updates.' : 'No form updates in the last 24 hours.')));
           badge.textContent=String(events.length); badge.hidden=!events.length;
           for (const item of events) {
             const card=document.createElement('article'); card.className='update-card';
@@ -590,8 +599,23 @@
             const title=document.createElement('h3'); title.textContent=displayTitle;
             const summary=document.createElement('p'); summary.className='update-summary'; summary.textContent=item.summary||'';
             const time=document.createElement('time'); time.className='update-time'; time.dateTime=item.timestamp; time.textContent=new Date(item.timestamp).toLocaleString();
-
-            card.append(type,title,summary,time);
+            const dismiss=document.createElement('button'); dismiss.type='button'; dismiss.className='notification-dismiss'; dismiss.textContent='×'; dismiss.setAttribute('aria-label','Dismiss notification'); dismiss.title='Dismiss notification';
+            dismiss.addEventListener('click',() => {
+              dismissedNotificationIds.add(eventId(item));
+              try { localStorage.setItem(dismissedNotificationsKey,JSON.stringify([...dismissedNotificationIds].slice(-500))); } catch {}
+              card.remove();
+              const remaining=list.querySelectorAll('.update-card').length;
+              badge.textContent=String(remaining); badge.hidden=!remaining;
+              status.textContent=remaining ? remaining+' update'+(remaining===1?'':'s')+windowNote : 'All matching notifications have been dismissed.';
+            });
+            card.append(dismiss,type,title,summary,time);
+            if (item.type === 'Mailing List') {
+              const review=document.createElement('a');
+              review.className='update-review-app'; review.textContent='Review in AppSheet';
+              review.href='https://www.appsheet.com/start/0ce6e650-0ac9-4b72-8e9a-15bd1610a6d8#view=On+Line+Mailing+List+Sign+Ups+to+Review';
+              review.target='_blank'; review.rel='noopener noreferrer';
+              card.append(review);
+            }
             if (item.details && Object.keys(item.details).length) {
               const reveal=document.createElement('button');
               reveal.type='button'; reveal.className='update-details-toggle'; reveal.textContent='Review Details';
