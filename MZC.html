@@ -564,6 +564,23 @@
         walk(value);
         return [...new Map(contacts.map(contact=>[contact.email.toLowerCase(),contact])).values()];
       }
+      function extractSubmittedMessage(details) {
+        const priorities=['question','message','inquiry','enquiry','comment','comments','special request','request details','note'];
+        const candidates=[];
+        const walk=node=>{
+          if (Array.isArray(node)) { node.forEach(walk); return; }
+          if (!node || typeof node!=='object') return;
+          for (const [key,value] of Object.entries(node)) {
+            const normalized=key.toLowerCase().replace(/[_-]+/g,' ').trim();
+            const rank=priorities.indexOf(normalized);
+            if (rank>=0 && typeof value==='string' && value.trim()) candidates.push({rank,text:value.trim()});
+            else if (value && typeof value==='object') walk(value);
+          }
+        };
+        walk(details);
+        candidates.sort((a,b)=>a.rank-b.rank);
+        return candidates[0]?.text.slice(0,5000)||'';
+      }
       function appendReplyHistory(container,item) {
         const replies=Array.isArray(item.replies)?item.replies:[];
         if (!replies.length) return;
@@ -604,7 +621,12 @@
       }
       function gmailComposeUrl(contact,item) {
         const subject='Re: '+(item.title||item.type||'Mile Zero Tours');
-        const body=`Hello ${contact.name},\n\n`;
+        const original=extractSubmittedMessage(item.details||{});
+        let body=`Hello ${contact.name},\n\n`;
+        if (original) {
+          const quoted=original.split(/\r?\n/).map(line=>'> '+line).join('\n');
+          body+=`--- Original message (remove this section before sending) ---\n${quoted}\n--- End original message ---\n\n`;
+        }
         return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(contact.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       }
       async function startReply(item,contact,allowRepeat=false) {
