@@ -183,6 +183,13 @@
     .updates-heading-actions { display:flex; gap:8px; }
     .updates-heading button { border:1px solid #bfd0b7; border-radius:8px; padding:8px 13px; background:#f9fbf5; color:#315837; font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
     .updates-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr)); gap:12px; }
+    .updates-page.past-fullscreen { position:fixed; inset:0; z-index:10000; display:flex; flex-direction:column; width:100vw; height:100vh; height:100dvh; min-height:0; margin:0; padding:clamp(16px,3vw,36px); box-sizing:border-box; overflow:hidden; border:0; border-radius:0; background:linear-gradient(145deg,#eff6e8 0%,#d9efca 55%,#b5e45b 100%); }
+    .updates-page.past-fullscreen .updates-heading { flex:0 0 auto; padding-bottom:14px; border-bottom:1px solid #b9d19e; }
+    .updates-page.past-fullscreen .updates-heading h2 { font-size:clamp(25px,3vw,34px); }
+    .updates-page.past-fullscreen .updates-heading p { font-size:14px; }
+    .updates-page.past-fullscreen .updates-status { flex:0 0 auto; }
+    .updates-page.past-fullscreen .updates-list { flex:1 1 auto; min-height:0; overflow:auto; align-content:start; grid-template-columns:repeat(auto-fill,minmax(min(380px,100%),1fr)); padding:4px 8px 20px 0; }
+    body.past-updates-open { overflow:hidden; }
     .update-card { position:relative; padding:16px 46px 16px 16px; border:1px solid #344236; border-radius:8px; background:#2d332f; color:#f6f8f2; }
     .update-type { color:#c2d7ae; font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
     .update-card h3 { margin:7px 0; font-size:17px; }
@@ -260,6 +267,9 @@
       .detail-grid { grid-template-columns:1fr; }
     }
 
+    /* The desktop layout floats Updates beside Apps; explicitly cancel it for the full-screen history view. */
+    #updates-page.past-fullscreen { position:fixed !important; inset:0 !important; z-index:10000 !important; display:flex !important; float:none !important; width:100vw !important; height:100vh !important; height:100dvh !important; min-height:0 !important; margin:0 !important; padding:clamp(16px,3vw,36px) !important; box-sizing:border-box !important; overflow:hidden !important; border:0 !important; border-radius:0 !important; background:linear-gradient(145deg,#eff6e8 0%,#d9efca 55%,#b5e45b 100%) !important; }
+    #updates-page.past-fullscreen .updates-list { grid-template-columns:repeat(auto-fill,minmax(min(380px,100%),1fr)); }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
   </style>
 </head>
@@ -294,7 +304,7 @@
       <button type="button" class="page-tab" id="updates-tab" role="tab" aria-controls="updates-page" aria-selected="false">Updates <span id="updates-badge" class="updates-badge" hidden></span></button>
     </nav>
     <section id="updates-page" class="updates-page" role="tabpanel" aria-labelledby="updates-tab" hidden>
-      <div class="updates-heading"><div><h2>Updates</h2><p>Recent form activity · 48 hours, with weekend carryover on Monday. Past view uses this device’s saved updates.</p></div><div class="updates-heading-actions"><button id="show-past-updates" type="button" aria-pressed="false">Show past</button><button id="refresh-updates" type="button">Refresh</button></div></div>
+      <div class="updates-heading"><div><h2 id="updates-title">Updates</h2><p id="updates-description">Recent form activity · 48 hours, with weekend carryover on Monday. Past view uses this device’s saved updates.</p></div><div class="updates-heading-actions"><button id="show-past-updates" type="button" aria-pressed="false">Show past</button><button id="refresh-updates" type="button">Refresh</button></div></div>
       <div id="updates-status" class="updates-status" role="status">Checking for updates…</div>
       <div id="updates-list" class="updates-list"></div>
     </section>
@@ -795,7 +805,12 @@
       const pastUpdatesButton=document.getElementById('show-past-updates');
       pastUpdatesButton.addEventListener('click',()=>{
         showingPastUpdates=!showingPastUpdates;
-        pastUpdatesButton.textContent=showingPastUpdates?'Show recent':'Show past';
+        updatesPage.classList.toggle('past-fullscreen',showingPastUpdates);
+        document.body.classList.toggle('past-updates-open',showingPastUpdates);
+        document.getElementById('updates-title').textContent=showingPastUpdates?'Past Updates':'Updates';
+        document.getElementById('updates-description').textContent=showingPastUpdates?'Saved on this device only · Not loaded from the cloud':'Recent form activity · 48 hours, with weekend carryover on Monday. Past view uses this device’s saved updates.';
+        pastUpdatesButton.textContent=showingPastUpdates?'Back to updates':'Show past';
+        pastUpdatesButton.setAttribute('aria-label',showingPastUpdates?'Return to recent updates':'Show past updates saved on this device');
         pastUpdatesButton.setAttribute('aria-pressed',String(showingPastUpdates));
         refreshUpdates();
       });
