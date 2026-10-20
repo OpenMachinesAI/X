@@ -180,6 +180,7 @@
     .apps-heading,.updates-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
     .apps-heading h2,.updates-heading h2 { margin:0; color:#303a30; font-size:24px; }
     .updates-heading p { margin:3px 0 0; color:#687766; font-size:12px; }
+    .updates-heading-actions { display:flex; gap:8px; }
     .updates-heading button { border:1px solid #bfd0b7; border-radius:8px; padding:8px 13px; background:#f9fbf5; color:#315837; font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
     .updates-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr)); gap:12px; }
     .update-card { position:relative; padding:16px 46px 16px 16px; border:1px solid #344236; border-radius:8px; background:#2d332f; color:#f6f8f2; }
@@ -288,7 +289,7 @@
       <button type="button" class="page-tab" id="updates-tab" role="tab" aria-controls="updates-page" aria-selected="false">Updates <span id="updates-badge" class="updates-badge" hidden></span></button>
     </nav>
     <section id="updates-page" class="updates-page" role="tabpanel" aria-labelledby="updates-tab" hidden>
-      <div class="updates-heading"><div><h2>Updates</h2><p>Recent form activity · 24 hours, with weekend carryover on Monday</p></div><button id="refresh-updates" type="button">Refresh</button></div>
+      <div class="updates-heading"><div><h2>Updates</h2><p>Recent form activity · 48 hours, with weekend carryover on Monday. Past view uses this device’s saved updates.</p></div><div class="updates-heading-actions"><button id="show-past-updates" type="button" aria-pressed="false">Show past</button><button id="refresh-updates" type="button">Refresh</button></div></div>
       <div id="updates-status" class="updates-status" role="status">Checking for updates…</div>
       <div id="updates-list" class="updates-list"></div>
     </section>
@@ -442,6 +443,10 @@
       const profileKey = 'mzc-profile-v1';
       const reviewedNewAppsKey = 'mzc-reviewed-new-apps-v1';
       const dismissedNotificationsKey = 'mzc-dismissed-notifications-v1';
+      const seenUpdatesKey = 'mzc-seen-updates-local-v1';
+      const updatesWindowHours = 48;
+      let showingPastUpdates = false;
+      let lastCloudEventIds = new Set();
       const viewKey = 'mzc-view-v1';
       let tiles = [...document.querySelectorAll('.tile')];
       let editMode = false;
@@ -456,7 +461,7 @@
       let pendingNewAppIds = [];
       const updatesKey = 'mzc-updates-api-key-v1';
       const updatesHeartbeatKey = 'mzc-extension-heartbeat-v1';
-      const updatesApi = 'https://api.milezerotours.com/mzc/updates?hours=24';
+      const updatesApi = 'https://api.milezerotours.com/mzc/updates?hours=48';
       const migrationDoneKey = 'mzc-migration-check-v1';
       const legacyKeys = {
         'mzt-employee-center-catalog-v1':'mzc-app-catalog-v1',
@@ -646,113 +651,148 @@
       }
       updatesTab.addEventListener('click',() => selectPage('updates'));
       appsTab.addEventListener('click',() => selectPage('apps'));
+      function deviceEventId(item) { return String(item.id || [item.type,item.timestamp,item.title,item.summary].join('|')); }
+      function loadSeenUpdates() {
+        try { const data=JSON.parse(localStorage.getItem(seenUpdatesKey)||'[]'); return Array.isArray(data)?data.filter(item=>item&&item.timestamp):[]; }
+        catch { return []; }
+      }
+      function saveSeenUpdates(events) {
+        try {
+          const saved=loadSeenUpdates();
+          const byId=new Map(saved.map(item=>[deviceEventId(item),item]));
+          const now=new Date().toISOString();
+          for (const event of events) {
+            const id=deviceEventId(event), previous=byId.get(id);
+            byId.set(id,{...event,_device_seen_at:previous?._device_seen_at||now});
+          }
+          let items=[...byId.values()].sort((a,b)=>String(b.timestamp).localeCompare(String(a.timestamp)));
+          while (items.length>200 || JSON.stringify(items).length>1500000) items.pop();
+          localStorage.setItem(seenUpdatesKey,JSON.stringify(items));
+        } catch(error) { console.warn('Could not save device update history',error); }
+      }
+      function renderUpdateCards(events,list,windowNote,past=false) {
+        const status=document.getElementById('updates-status');
+        const badge=document.getElementById('updates-badge');
+        for (const item of events) {
+          const card=document.createElement('article'); card.className='update-card';
+          const displayType=item.type==='Tree Opt Out'?'Tree Request':(item.type||'Form update');
+          const displayTitle=item.title==='Tree Opt-Out Request'?'Tree Request':(item.title||'New submission');
+          const type=document.createElement('div'); type.className='update-type'; type.textContent=displayType;
+          const title=document.createElement('h3'); title.textContent=displayTitle;
+          const summary=document.createElement('p'); summary.className='update-summary'; summary.textContent=item.summary||'';
+          const time=document.createElement('time'); time.className='update-time'; time.dateTime=item.timestamp; time.textContent=new Date(item.timestamp).toLocaleString();
+          const dismiss=document.createElement('button'); dismiss.type='button'; dismiss.className='notification-dismiss'; dismiss.textContent='×'; dismiss.setAttribute('aria-label','Dismiss notification'); dismiss.title='Dismiss notification';
+          dismiss.addEventListener('click',()=>{
+            dismissedNotificationIds.add(deviceEventId(item));
+            try { localStorage.setItem(dismissedNotificationsKey,JSON.stringify([...dismissedNotificationIds].slice(-500))); } catch {}
+            card.remove();
+            const remaining=list.querySelectorAll('.update-card').length;
+            badge.textContent=String(remaining); badge.hidden=!remaining;
+            status.textContent=remaining?remaining+' update'+(remaining===1?'':'s')+windowNote:(past?'No past updates saved on this device yet.':'All matching notifications have been dismissed.');
+          });
+          card.append(dismiss,type,title,summary,time);
+          if (!past && item.type==='Mailing List') {
+            const review=document.createElement('a'); review.className='update-review-app'; review.textContent='Review in AppSheet';
+            review.href='https://www.appsheet.com/start/0ce6e650-0ac9-4b72-8e9a-15bd1610a6d8#view=On+Line+Mailing+List+Sign+Ups+to+Review';
+            review.target='_blank'; review.rel='noopener noreferrer'; card.append(review);
+          }
+          const contacts=collectEmailContacts(item.details||{});
+          const replyState=item.reply||{status:'pending'};
+          if (!past && (contacts.length || replyState.status==='claimed' || replyState.status==='replied')) {
+            const actions=document.createElement('div'); actions.className='update-reply-actions';
+            let recipientPicker=null;
+            if (contacts.length>1 && replyState.status!=='claimed') {
+              recipientPicker=document.createElement('select'); recipientPicker.className='update-recipient-picker'; recipientPicker.setAttribute('aria-label','Choose email contact');
+              for (const contact of contacts) { const option=document.createElement('option'); option.value=contact.email; option.textContent=`${contact.name} · ${contact.email}`; recipientPicker.append(option); }
+              actions.append(recipientPicker);
+            }
+            const selectedContact=()=>contacts.find(contact=>contact.email===(recipientPicker?.value||contacts[0]?.email));
+            const replyButton=document.createElement('button'); replyButton.type='button'; replyButton.className='update-reply-button';
+            if (replyState.status==='replied') {
+              replyButton.textContent='Replied';
+              replyButton.addEventListener('click',async()=>{
+                const name=replyState.replied_by||'Someone';
+                if (!confirm(`${name} Already replied to this, Do you want to reply again?`)) return;
+                const contact=selectedContact()||{name:replyState.recipient_name||replyState.recipient_email,email:replyState.recipient_email};
+                if (contact.email) await startReply(item,contact,true);
+              });
+            } else if (replyState.status==='claimed') {
+              const owner=replyState.claimed_by||'Another employee';
+              let ownClaim=''; try { ownClaim=localStorage.getItem('mzc-reply-claim-'+item.id)||''; } catch {}
+              if (ownClaim && ownClaim===replyState.claim_id) {
+                replyButton.textContent='Mark as replied';
+                replyButton.addEventListener('click',async()=>{
+                  if (!confirm('Have you sent the email in Gmail? Mark it as replied for everyone.')) return;
+                  try { await postReplyAction(item,'complete',{employee_name:savedProfile?.name||'Employee',claim_id:ownClaim}); localStorage.removeItem('mzc-reply-claim-'+item.id); await refreshUpdates(); }
+                  catch(error) { alert(error.message); await refreshUpdates(); }
+                });
+                const release=document.createElement('button'); release.type='button'; release.className='update-reply-button'; release.textContent='Release assignment';
+                release.addEventListener('click',async()=>{ try { await postReplyAction(item,'release',{employee_name:savedProfile?.name||'Employee',claim_id:ownClaim}); localStorage.removeItem('mzc-reply-claim-'+item.id); await refreshUpdates(); } catch(error) { alert(error.message); } });
+                actions.append(replyButton,release);
+                const note=document.createElement('p'); note.className='reply-notice'; note.textContent='After sending in Gmail, return here and mark it as replied.'; actions.append(note);
+              } else { replyButton.textContent=`Replying · ${owner}`; replyButton.disabled=true; actions.append(replyButton); }
+            } else if (contacts.length) {
+              replyButton.textContent='Reply in Gmail'; replyButton.addEventListener('click',()=>{const contact=selectedContact();if(contact)startReply(item,contact);}); actions.append(replyButton);
+            }
+            if (!actions.childElementCount && replyButton.textContent) actions.append(replyButton);
+            if (actions.childElementCount) card.append(actions);
+          }
+          appendReplyHistory(card,item);
+          if (item.details && Object.keys(item.details).length) {
+            const reveal=document.createElement('button'); reveal.type='button'; reveal.className='update-details-toggle'; reveal.textContent='Review Details';
+            reveal.addEventListener('click',()=>openUpdateDetails(item)); card.append(reveal);
+          }
+          list.append(card);
+        }
+      }
+      const pastUpdatesButton=document.getElementById('show-past-updates');
+      pastUpdatesButton.addEventListener('click',()=>{
+        showingPastUpdates=!showingPastUpdates;
+        pastUpdatesButton.textContent=showingPastUpdates?'Show recent':'Show past';
+        pastUpdatesButton.setAttribute('aria-pressed',String(showingPastUpdates));
+        refreshUpdates();
+      });
+
       async function refreshUpdates() {
-        const status = document.getElementById('updates-status');
-        const list = document.getElementById('updates-list');
-        const badge = document.getElementById('updates-badge');
+        const status=document.getElementById('updates-status');
+        const list=document.getElementById('updates-list');
+        const badge=document.getElementById('updates-badge');
         list.replaceChildren();
         if (!selectedNotificationTypes.size) {
-          status.textContent = 'Notifications are turned off.';
-          badge.hidden = true;
-          return;
+          status.textContent='Notifications are turned off.'; badge.hidden=true; return;
         }
-        const apiKey = currentUpdatesKey();
+        if (showingPastUpdates) {
+          const cutoff=Date.now()-updatesWindowHours*60*60*1000;
+          const past=loadSeenUpdates().filter(item=>{
+            const category=item.type==='Booking'?'booking':item.type==='Website Question'?'website':'other';
+            const stamp=Date.parse(item.timestamp);
+            return selectedNotificationTypes.has(category) && Number.isFinite(stamp) && stamp<cutoff && !lastCloudEventIds.has(deviceEventId(item));
+          });
+          status.textContent=past.length?`${past.length} past update${past.length===1?'':'s'} saved on this device.`:'No past updates saved on this device yet.';
+          renderUpdateCards(past,list,' saved on this device',true); return;
+        }
+        const apiKey=currentUpdatesKey();
         if (!apiKey) {
-          status.textContent='Updates are available on computers configured with the MileZeroCenter V2 extension.';
-          badge.hidden=true;
-          if (updateKeyWaits < 5) { updateKeyWaits++; window.setTimeout(refreshUpdates,1000); }
+          status.textContent='Updates are available on computers configured with the MileZeroCenter V2 extension.'; badge.hidden=true;
+          if (updateKeyWaits<5) { updateKeyWaits++; window.setTimeout(refreshUpdates,1000); }
           return;
         }
-        updateKeyWaits=0;
-        status.textContent='Loading recent updates…';
+        updateKeyWaits=0; status.textContent='Loading recent updates…';
         try {
-          const response = await fetch(updatesApi,{headers:{'Authorization':'Bearer '+apiKey},cache:'no-store'});
-          if (response.status === 401) throw new Error('The updates key is not accepted. Ask an administrator to update the extension settings.');
+          const response=await fetch(updatesApi,{headers:{'Authorization':'Bearer '+apiKey},cache:'no-store'});
+          if (response.status===401) throw new Error('The updates key is not accepted. Ask an administrator to update the extension settings.');
           if (!response.ok) throw new Error('Updates are temporarily unavailable.');
-          const data = await response.json();
-          const allEvents = Array.isArray(data.events) ? data.events : [];
-          const eventCategory = item => item.type === 'Booking' ? 'booking' : item.type === 'Website Question' ? 'website' : 'other';
-          const selectedEvents = allEvents.filter(item => selectedNotificationTypes.has(eventCategory(item)));
-          const eventId = item => String(item.id || [item.type,item.timestamp,item.title,item.summary].join('|'));
-          const events = selectedEvents.filter(item => !dismissedNotificationIds.has(eventId(item)));
-          const windowNote = data.weekend_carryover ? ' (weekend submissions included)' : ' in the last 24 hours';
-          status.textContent = events.length ? events.length+' update'+(events.length===1?'':'s')+windowNote : (selectedEvents.length ? 'All matching notifications have been dismissed.' : (allEvents.length ? 'No updates match your notification choices.' : (data.weekend_carryover ? 'No weekend or recent form updates.' : 'No form updates in the last 24 hours.')));
+          const data=await response.json();
+          const allEvents=Array.isArray(data.events)?data.events:[];
+          lastCloudEventIds=new Set(allEvents.map(deviceEventId));
+          const eventCategory=item=>item.type==='Booking'?'booking':item.type==='Website Question'?'website':'other';
+          const selectedEvents=allEvents.filter(item=>selectedNotificationTypes.has(eventCategory(item)));
+          saveSeenUpdates(selectedEvents);
+          const events=selectedEvents.filter(item=>!dismissedNotificationIds.has(deviceEventId(item)));
+          const windowNote=data.weekend_carryover?' (weekend submissions included)':' in the last 48 hours';
+          status.textContent=events.length?events.length+' update'+(events.length===1?'':'s')+windowNote:(selectedEvents.length?'All matching notifications have been dismissed.':(allEvents.length?'No updates match your notification choices.':(data.weekend_carryover?'No weekend or recent form updates.':'No form updates in the last 48 hours.')));
           badge.textContent=String(events.length); badge.hidden=!events.length;
-          for (const item of events) {
-            const card=document.createElement('article'); card.className='update-card';
-            const displayType = item.type === 'Tree Opt Out' ? 'Tree Request' : (item.type || 'Form update');
-            const displayTitle = item.title === 'Tree Opt-Out Request' ? 'Tree Request' : (item.title || 'New submission');
-            const type=document.createElement('div'); type.className='update-type'; type.textContent=displayType;
-            const title=document.createElement('h3'); title.textContent=displayTitle;
-            const summary=document.createElement('p'); summary.className='update-summary'; summary.textContent=item.summary||'';
-            const time=document.createElement('time'); time.className='update-time'; time.dateTime=item.timestamp; time.textContent=new Date(item.timestamp).toLocaleString();
-            const dismiss=document.createElement('button'); dismiss.type='button'; dismiss.className='notification-dismiss'; dismiss.textContent='×'; dismiss.setAttribute('aria-label','Dismiss notification'); dismiss.title='Dismiss notification';
-            dismiss.addEventListener('click',() => {
-              dismissedNotificationIds.add(eventId(item));
-              try { localStorage.setItem(dismissedNotificationsKey,JSON.stringify([...dismissedNotificationIds].slice(-500))); } catch {}
-              card.remove();
-              const remaining=list.querySelectorAll('.update-card').length;
-              badge.textContent=String(remaining); badge.hidden=!remaining;
-              status.textContent=remaining ? remaining+' update'+(remaining===1?'':'s')+windowNote : 'All matching notifications have been dismissed.';
-            });
-            card.append(dismiss,type,title,summary,time);
-            if (item.type === 'Mailing List') {
-              const review=document.createElement('a');
-              review.className='update-review-app'; review.textContent='Review in AppSheet';
-              review.href='https://www.appsheet.com/start/0ce6e650-0ac9-4b72-8e9a-15bd1610a6d8#view=On+Line+Mailing+List+Sign+Ups+to+Review';
-              review.target='_blank'; review.rel='noopener noreferrer';
-              card.append(review);
-            }
-            const contacts=collectEmailContacts(item.details||{});
-            const replyState=item.reply||{status:'pending'};
-            if (contacts.length || replyState.status==='claimed' || replyState.status==='replied') {
-              const actions=document.createElement('div'); actions.className='update-reply-actions';
-              let recipientPicker=null;
-              if (contacts.length>1 && replyState.status!=='claimed') {
-                recipientPicker=document.createElement('select'); recipientPicker.className='update-recipient-picker'; recipientPicker.setAttribute('aria-label','Choose email contact');
-                for (const contact of contacts) { const option=document.createElement('option'); option.value=contact.email; option.textContent=`${contact.name} · ${contact.email}`; recipientPicker.append(option); }
-                actions.append(recipientPicker);
-              }
-              const selectedContact=()=>contacts.find(contact=>contact.email===(recipientPicker?.value||contacts[0]?.email));
-              const replyButton=document.createElement('button'); replyButton.type='button'; replyButton.className='update-reply-button';
-              if (replyState.status==='replied') {
-                replyButton.textContent='Replied';
-                replyButton.addEventListener('click',async()=>{
-                  const name=replyState.replied_by||'Someone';
-                  if (!confirm(`${name} Already replied to this, Do you want to reply again?`)) return;
-                  const contact=selectedContact()||{name:replyState.recipient_name||replyState.recipient_email,email:replyState.recipient_email};
-                  if (contact.email) await startReply(item,contact,true);
-                });
-              } else if (replyState.status==='claimed') {
-                const owner=replyState.claimed_by||'Another employee';
-                let ownClaim=''; try { ownClaim=localStorage.getItem('mzc-reply-claim-'+item.id)||''; } catch {}
-                if (ownClaim && ownClaim===replyState.claim_id) {
-                  replyButton.textContent='Mark as replied';
-                  replyButton.addEventListener('click',async()=>{
-                    if (!confirm('Have you sent the email in Gmail? Mark it as replied for everyone.')) return;
-                    try { await postReplyAction(item,'complete',{employee_name:savedProfile?.name||'Employee',claim_id:ownClaim}); localStorage.removeItem('mzc-reply-claim-'+item.id); await refreshUpdates(); }
-                    catch(error) { alert(error.message); await refreshUpdates(); }
-                  });
-                  const release=document.createElement('button'); release.type='button'; release.className='update-reply-button'; release.textContent='Release assignment';
-                  release.addEventListener('click',async()=>{ try { await postReplyAction(item,'release',{employee_name:savedProfile?.name||'Employee',claim_id:ownClaim}); localStorage.removeItem('mzc-reply-claim-'+item.id); await refreshUpdates(); } catch(error) { alert(error.message); } });
-                  actions.append(replyButton,release);
-                  const note=document.createElement('p'); note.className='reply-notice'; note.textContent='After sending in Gmail, return here and mark it as replied.'; actions.append(note);
-                } else { replyButton.textContent=`Replying · ${owner}`; replyButton.disabled=true; actions.append(replyButton); }
-              } else if (contacts.length) {
-                replyButton.textContent='Reply in Gmail'; replyButton.addEventListener('click',()=>{const contact=selectedContact();if(contact)startReply(item,contact);}); actions.append(replyButton);
-              }
-              if (!actions.childElementCount && replyButton.textContent) actions.append(replyButton);
-              if (actions.childElementCount) card.append(actions);
-            }
-            appendReplyHistory(card,item);
-            if (item.details && Object.keys(item.details).length) {
-              const reveal=document.createElement('button');
-              reveal.type='button'; reveal.className='update-details-toggle'; reveal.textContent='Review Details';
-              reveal.addEventListener('click',() => openUpdateDetails(item));
-              card.append(reveal);
-            }
-            list.append(card);
-          }
+          renderUpdateCards(events,list,windowNote,false);
         } catch(error) { status.textContent=error.message||'Updates are temporarily unavailable.'; }
       }
       document.getElementById('refresh-updates').addEventListener('click',refreshUpdates);
