@@ -182,10 +182,6 @@
     .updates-heading p { margin:3px 0 0; color:#687766; font-size:12px; }
     .updates-heading-actions { display:flex; gap:8px; }
     .updates-heading button { border:1px solid #bfd0b7; border-radius:8px; padding:8px 13px; background:#f9fbf5; color:#315837; font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
-    .updates-heading button#clear-past-updates { display:grid; width:38px; height:38px; place-items:center; padding:0; border-color:#d9aaa1; background:#fff8f5; color:#a43d32; }
-    .updates-heading button#clear-past-updates:hover { background:#ffe9e3; }
-    #clear-past-updates svg { width:19px; height:19px; }
-    #clear-past-updates[hidden] { display:none; }
     .updates-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr)); gap:12px; }
     .updates-page.past-fullscreen { position:fixed; inset:0; z-index:10000; display:flex; flex-direction:column; width:100vw; height:100vh; height:100dvh; min-height:0; margin:0; padding:clamp(16px,3vw,36px); box-sizing:border-box; overflow:hidden; border:0; border-radius:0; background:linear-gradient(145deg,#eff6e8 0%,#d9efca 55%,#b5e45b 100%); }
     .updates-page.past-fullscreen .updates-heading { flex:0 0 auto; padding-bottom:14px; border-bottom:1px solid #b9d19e; }
@@ -220,6 +216,9 @@
     .notification-dismiss { position:absolute; top:8px; right:8px; display:grid; width:30px; height:30px; place-items:center; border:0; border-radius:50%; background:transparent; color:#d5ded1; font:inherit; font-size:23px; line-height:1; cursor:pointer; }
     .notification-dismiss:hover { background:#ffffff1a; color:#fff; }
     .notification-dismiss[hidden] { display:none; }
+    .past-delete { position:absolute; top:8px; right:8px; display:grid; width:30px; height:30px; place-items:center; border:0; border-radius:50%; background:transparent; color:#ffd0c8; cursor:pointer; }
+    .past-delete:hover { background:#ffffff1a; color:#ff9f8f; }
+    .past-delete svg { width:17px; height:17px; }
     #update-details-dialog { width:100vw; max-width:none; height:100dvh; max-height:none; margin:0; border:0; border-radius:0; background:#f4f8ef; color:#263529; }
     #update-details-dialog::backdrop { background:#162119b8; backdrop-filter:blur(4px); }
     .details-dialog-shell { display:flex; width:min(1000px,100%); height:100%; flex-direction:column; margin:auto; }
@@ -308,7 +307,7 @@
       <button type="button" class="page-tab" id="updates-tab" role="tab" aria-controls="updates-page" aria-selected="false">Updates <span id="updates-badge" class="updates-badge" hidden></span></button>
     </nav>
     <section id="updates-page" class="updates-page" role="tabpanel" aria-labelledby="updates-tab" hidden>
-      <div class="updates-heading"><div><h2 id="updates-title">Updates</h2><p id="updates-description">Recent form activity · 48 hours, with weekend carryover on Monday. Past view uses this device’s saved updates.</p></div><div class="updates-heading-actions"><button id="clear-past-updates" type="button" aria-label="Permanently delete past updates saved on this device" title="Delete all past updates from this device" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m3 0-.9 14H5.9L5 6m4 4v6m6-6v6"/></svg></button><button id="show-past-updates" type="button" aria-pressed="false">Show past</button><button id="refresh-updates" type="button">Refresh</button></div></div>
+      <div class="updates-heading"><div><h2 id="updates-title">Updates</h2><p id="updates-description">Recent form activity · 48 hours, with weekend carryover on Monday. Past view uses this device’s saved updates.</p></div><div class="updates-heading-actions"><button id="show-past-updates" type="button" aria-pressed="false">Show past</button><button id="refresh-updates" type="button">Refresh</button></div></div>
       <div id="updates-status" class="updates-status" role="status">Checking for updates…</div>
       <div id="updates-list" class="updates-list"></div>
     </section>
@@ -803,7 +802,12 @@
             badge.textContent=String(remaining); badge.hidden=!remaining;
             status.textContent=remaining?remaining+' update'+(remaining===1?'':'s')+windowNote:(past?'No past updates saved on this device yet.':'All matching notifications have been dismissed.');
           });
-          card.append(dismiss,type,title,summary,time);
+          if (past) {
+            const remove=document.createElement('button'); remove.type='button'; remove.className='past-delete'; remove.title='Delete this past update permanently from this device'; remove.setAttribute('aria-label','Delete '+displayTitle+' permanently from this device');
+            remove.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m3 0-.9 14H5.9L5 6m4 4v6m6-6v6"/></svg>';
+            remove.addEventListener('click',()=>deletePastUpdate(item));
+            card.append(remove,type,title,summary,time);
+          } else card.append(dismiss,type,title,summary,time);
           if (!past && item.type==='Mailing List') {
             const review=document.createElement('a'); review.className='update-review-app'; review.textContent='Review in AppSheet';
             review.href='https://www.appsheet.com/start/0ce6e650-0ac9-4b72-8e9a-15bd1610a6d8#view=On+Line+Mailing+List+Sign+Ups+to+Review';
@@ -820,7 +824,6 @@
         }
       }
       const pastUpdatesButton=document.getElementById('show-past-updates');
-      const clearPastUpdatesButton=document.getElementById('clear-past-updates');
       pastUpdatesButton.addEventListener('click',()=>{
         showingPastUpdates=!showingPastUpdates;
         updatesPage.classList.toggle('past-fullscreen',showingPastUpdates);
@@ -830,30 +833,23 @@
         pastUpdatesButton.textContent=showingPastUpdates?'Back to updates':'Show past';
         pastUpdatesButton.setAttribute('aria-label',showingPastUpdates?'Return to recent updates':'Show past updates saved on this device');
         pastUpdatesButton.setAttribute('aria-pressed',String(showingPastUpdates));
-        clearPastUpdatesButton.hidden=!showingPastUpdates;
         refreshUpdates();
       });
 
-      clearPastUpdatesButton.addEventListener('click',()=>{
-        const past=getPastUpdates();
-        if (!past.length) { alert('There are no past updates to delete.'); return; }
-        const confirmed=confirm(`Permanently delete all ${past.length} past update${past.length===1?'':'s'} saved on this device? This cannot be undone. Server records will not be changed.`);
-        if (!confirmed) return;
+      function deletePastUpdate(item) {
+        const title=item.title==='Tree Opt-Out Request'?'Tree Request':(item.title||item.type||'this update');
+        if (!confirm(`Permanently delete “${title}” from this device? This cannot be undone. Server records will not be changed.`)) return;
+        const id=deviceEventId(item);
         try {
-          const pastIds=new Set(past.map(deviceEventId));
-          purgedUpdateIds=new Set([...purgedUpdateIds,...pastIds]);
+          purgedUpdateIds=new Set([...purgedUpdateIds,id]);
           localStorage.setItem(purgedUpdatesKey,JSON.stringify([...purgedUpdateIds].slice(-1000)));
-          const remaining=loadSeenUpdates().filter(item=>!pastIds.has(deviceEventId(item)));
-          localStorage.setItem(seenUpdatesKey,JSON.stringify(remaining));
-          for (const item of past) {
-            const id=String(item.id||'');
-            if (id) localStorage.removeItem('mzc-reply-claim-'+id);
-          }
+          localStorage.setItem(seenUpdatesKey,JSON.stringify(loadSeenUpdates().filter(saved=>deviceEventId(saved)!==id)));
+          if (item.id) localStorage.removeItem('mzc-reply-claim-'+String(item.id));
           refreshUpdates();
         } catch(error) {
-          alert('Could not delete the saved past updates from this device. '+(error.message||''));
+          alert('Could not delete this past update from the device. '+(error.message||''));
         }
-      });
+      }
 
       async function refreshUpdates() {
         const status=document.getElementById('updates-status');
