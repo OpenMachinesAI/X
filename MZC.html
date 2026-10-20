@@ -182,6 +182,10 @@
     .updates-heading p { margin:3px 0 0; color:#687766; font-size:12px; }
     .updates-heading-actions { display:flex; gap:8px; }
     .updates-heading button { border:1px solid #bfd0b7; border-radius:8px; padding:8px 13px; background:#f9fbf5; color:#315837; font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
+    .updates-heading button#clear-past-updates { display:grid; width:38px; height:38px; place-items:center; padding:0; border-color:#d9aaa1; background:#fff8f5; color:#a43d32; }
+    .updates-heading button#clear-past-updates:hover { background:#ffe9e3; }
+    #clear-past-updates svg { width:19px; height:19px; }
+    #clear-past-updates[hidden] { display:none; }
     .updates-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr)); gap:12px; }
     .updates-page.past-fullscreen { position:fixed; inset:0; z-index:10000; display:flex; flex-direction:column; width:100vw; height:100vh; height:100dvh; min-height:0; margin:0; padding:clamp(16px,3vw,36px); box-sizing:border-box; overflow:hidden; border:0; border-radius:0; background:linear-gradient(145deg,#eff6e8 0%,#d9efca 55%,#b5e45b 100%); }
     .updates-page.past-fullscreen .updates-heading { flex:0 0 auto; padding-bottom:14px; border-bottom:1px solid #b9d19e; }
@@ -304,7 +308,7 @@
       <button type="button" class="page-tab" id="updates-tab" role="tab" aria-controls="updates-page" aria-selected="false">Updates <span id="updates-badge" class="updates-badge" hidden></span></button>
     </nav>
     <section id="updates-page" class="updates-page" role="tabpanel" aria-labelledby="updates-tab" hidden>
-      <div class="updates-heading"><div><h2 id="updates-title">Updates</h2><p id="updates-description">Recent form activity · 48 hours, with weekend carryover on Monday. Past view uses this device’s saved updates.</p></div><div class="updates-heading-actions"><button id="show-past-updates" type="button" aria-pressed="false">Show past</button><button id="refresh-updates" type="button">Refresh</button></div></div>
+      <div class="updates-heading"><div><h2 id="updates-title">Updates</h2><p id="updates-description">Recent form activity · 48 hours, with weekend carryover on Monday. Past view uses this device’s saved updates.</p></div><div class="updates-heading-actions"><button id="clear-past-updates" type="button" aria-label="Permanently delete past updates saved on this device" title="Delete all past updates from this device" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m3 0-.9 14H5.9L5 6m4 4v6m6-6v6"/></svg></button><button id="show-past-updates" type="button" aria-pressed="false">Show past</button><button id="refresh-updates" type="button">Refresh</button></div></div>
       <div id="updates-status" class="updates-status" role="status">Checking for updates…</div>
       <div id="updates-list" class="updates-list"></div>
     </section>
@@ -459,6 +463,7 @@
       const reviewedNewAppsKey = 'mzc-reviewed-new-apps-v1';
       const dismissedNotificationsKey = 'mzc-dismissed-notifications-v1';
       const seenUpdatesKey = 'mzc-seen-updates-local-v1';
+      const purgedUpdatesKey = 'mzc-purged-updates-local-v1';
       const updatesWindowHours = 48;
       let showingPastUpdates = false;
       let lastCloudEventIds = new Set();
@@ -473,6 +478,8 @@
       let selectedNotificationTypes = new Set(allNotificationTypes);
       let dismissedNotificationIds = new Set();
       try { dismissedNotificationIds = new Set(JSON.parse(localStorage.getItem(dismissedNotificationsKey) || '[]')); } catch {}
+      let purgedUpdateIds = new Set();
+      try { purgedUpdateIds = new Set(JSON.parse(localStorage.getItem(purgedUpdatesKey) || '[]')); } catch {}
       let pendingNewAppIds = [];
       const updatesKey = 'mzc-updates-api-key-v1';
       const updatesHeartbeatKey = 'mzc-extension-heartbeat-v1';
@@ -750,6 +757,15 @@
         try { const data=JSON.parse(localStorage.getItem(seenUpdatesKey)||'[]'); return Array.isArray(data)?data.filter(item=>item&&item.timestamp):[]; }
         catch { return []; }
       }
+      function getPastUpdates() {
+        const cutoff=Date.now()-updatesWindowHours*60*60*1000;
+        return loadSeenUpdates().filter(item=>{
+          const category=item.type==='Booking'?'booking':item.type==='Website Question'?'website':'other';
+          const stamp=Date.parse(item.timestamp);
+          const id=deviceEventId(item);
+          return selectedNotificationTypes.has(category) && Number.isFinite(stamp) && (dismissedNotificationIds.has(id) || (stamp<cutoff && !lastCloudEventIds.has(id)));
+        });
+      }
       function saveSeenUpdates(events) {
         try {
           const saved=loadSeenUpdates();
@@ -757,6 +773,7 @@
           const now=new Date().toISOString();
           for (const event of events) {
             const id=deviceEventId(event), previous=byId.get(id);
+            if (purgedUpdateIds.has(id)) continue;
             byId.set(id,{...event,_device_seen_at:previous?._device_seen_at||now});
           }
           let items=[...byId.values()].sort((a,b)=>String(b.timestamp).localeCompare(String(a.timestamp)));
@@ -803,6 +820,7 @@
         }
       }
       const pastUpdatesButton=document.getElementById('show-past-updates');
+      const clearPastUpdatesButton=document.getElementById('clear-past-updates');
       pastUpdatesButton.addEventListener('click',()=>{
         showingPastUpdates=!showingPastUpdates;
         updatesPage.classList.toggle('past-fullscreen',showingPastUpdates);
@@ -812,7 +830,29 @@
         pastUpdatesButton.textContent=showingPastUpdates?'Back to updates':'Show past';
         pastUpdatesButton.setAttribute('aria-label',showingPastUpdates?'Return to recent updates':'Show past updates saved on this device');
         pastUpdatesButton.setAttribute('aria-pressed',String(showingPastUpdates));
+        clearPastUpdatesButton.hidden=!showingPastUpdates;
         refreshUpdates();
+      });
+
+      clearPastUpdatesButton.addEventListener('click',()=>{
+        const past=getPastUpdates();
+        if (!past.length) { alert('There are no past updates to delete.'); return; }
+        const confirmed=confirm(`Permanently delete all ${past.length} past update${past.length===1?'':'s'} saved on this device? This cannot be undone. Server records will not be changed.`);
+        if (!confirmed) return;
+        try {
+          const pastIds=new Set(past.map(deviceEventId));
+          purgedUpdateIds=new Set([...purgedUpdateIds,...pastIds]);
+          localStorage.setItem(purgedUpdatesKey,JSON.stringify([...purgedUpdateIds].slice(-1000)));
+          const remaining=loadSeenUpdates().filter(item=>!pastIds.has(deviceEventId(item)));
+          localStorage.setItem(seenUpdatesKey,JSON.stringify(remaining));
+          for (const item of past) {
+            const id=String(item.id||'');
+            if (id) localStorage.removeItem('mzc-reply-claim-'+id);
+          }
+          refreshUpdates();
+        } catch(error) {
+          alert('Could not delete the saved past updates from this device. '+(error.message||''));
+        }
       });
 
       async function refreshUpdates() {
@@ -824,13 +864,7 @@
           status.textContent='Notifications are turned off.'; badge.hidden=true; return;
         }
         if (showingPastUpdates) {
-          const cutoff=Date.now()-updatesWindowHours*60*60*1000;
-          const past=loadSeenUpdates().filter(item=>{
-            const category=item.type==='Booking'?'booking':item.type==='Website Question'?'website':'other';
-            const stamp=Date.parse(item.timestamp);
-            const id=deviceEventId(item);
-            return selectedNotificationTypes.has(category) && Number.isFinite(stamp) && (dismissedNotificationIds.has(id) || (stamp<cutoff && !lastCloudEventIds.has(id)));
-          });
+          const past=getPastUpdates();
           status.textContent=past.length?`${past.length} past update${past.length===1?'':'s'} saved on this device.`:'No past updates saved on this device yet.';
           renderUpdateCards(past,list,' saved on this device',true); return;
         }
