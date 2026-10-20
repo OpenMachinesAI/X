@@ -192,8 +192,12 @@
     .update-review-app { display:inline-block; margin:12px 8px 0 0; padding:7px 12px; border:0; border-radius:5px; background:#d9edc8; color:#243b25; font:inherit; font-size:12px; font-weight:750; text-decoration:none; }
     .update-review-app:hover { background:#c2e2a9; }
     .update-reply-actions { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:12px; }
-    .update-reply-button { padding:7px 12px; border:0; border-radius:5px; background:#d8efbd; color:#243b25; font:inherit; font-size:12px; font-weight:800; cursor:pointer; }
-    .update-reply-button:disabled { background:#d5dcd1; color:#586454; cursor:default; }
+    .update-reply-button { padding:8px 13px; border:0; border-radius:6px; font:inherit; font-size:13px; font-weight:800; cursor:pointer; }
+    .reply-ready { background:#238444; color:#fff; }
+    .reply-replied { background:#bd3b3b; color:#fff; }
+    .reply-in-progress { background:#e2c047; color:#282713; }
+    .reply-secondary { background:#edf2e8; color:#344534; }
+    .update-reply-button:disabled { opacity:.85; cursor:default; }
     .update-recipient-picker { max-width:100%; padding:7px 9px; border:1px solid #a8b99e; border-radius:5px; background:#fff; color:#263529; font:inherit; font-size:12px; }
     .update-replies { margin-top:11px; border-top:1px solid #ffffff38; padding-top:8px; }
     .update-replies summary { color:#d6e4ce; font-size:12px; font-weight:750; cursor:pointer; }
@@ -204,6 +208,7 @@
     .details-dialog-body .update-replies summary,.details-dialog-body .update-replies ol { color:#344534; }
     .notification-dismiss { position:absolute; top:8px; right:8px; display:grid; width:30px; height:30px; place-items:center; border:0; border-radius:50%; background:transparent; color:#d5ded1; font:inherit; font-size:23px; line-height:1; cursor:pointer; }
     .notification-dismiss:hover { background:#ffffff1a; color:#fff; }
+    .notification-dismiss[hidden] { display:none; }
     #update-details-dialog { width:100vw; max-width:none; height:100dvh; max-height:none; margin:0; border:0; border-radius:0; background:#f4f8ef; color:#263529; }
     #update-details-dialog::backdrop { background:#162119b8; backdrop-filter:blur(4px); }
     .details-dialog-shell { display:flex; width:min(1000px,100%); height:100%; flex-direction:column; margin:auto; }
@@ -215,13 +220,13 @@
     .details-dialog-body { flex:1; overflow:auto; padding:22px clamp(20px,5vw,54px) 45px; }
     .details-empty { color:#71806d; font-size:14px; }
     .detail-section { margin:0 0 20px; padding:18px; border:1px solid #dbe5d7; border-radius:12px; background:#fff; box-shadow:0 4px 14px #31522b0b; }
-    .detail-section h3 { margin:0 0 13px; color:#31563b; font-size:16px; }
+    .detail-section h3 { margin:0 0 13px; color:#31563b; font-size:19px; }
     .detail-subsection { margin:12px 0 0; padding:14px; border-radius:9px; background:#f5f8f2; }
-    .detail-subsection h4 { margin:0 0 10px; color:#536c47; font-size:14px; }
+    .detail-subsection h4 { margin:0 0 10px; color:#536c47; font-size:17px; }
     .detail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
     .detail-item { min-width:0; padding:10px 12px; border-radius:8px; background:#f5f8f2; }
-    .detail-label { margin-bottom:3px; color:#798473; font-size:11px; font-weight:750; }
-    .detail-value { color:#28372b; font-size:14px; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .detail-label { margin-bottom:4px; color:#68745f; font-size:14px; font-weight:750; }
+    .detail-value { color:#28372b; font-size:17px; line-height:1.5; white-space:pre-wrap; overflow-wrap:anywhere; }
     .updates-status { margin:5px 0 12px; color:#586653; font-size:13px; }
     #updates-page[hidden] { display:none; }
     .apps-page .group { margin-top:17px; }
@@ -593,6 +598,7 @@
           if (entry.action==='claimed') line.textContent=`${entry.employee||'An employee'} started a reply to ${recipient} · ${new Date(entry.timestamp).toLocaleString()}`;
           else if (entry.action==='replied') line.textContent=`${entry.employee||'An employee'} replied to ${recipient} · ${new Date(entry.timestamp).toLocaleString()}`;
           else if (entry.action==='released') line.textContent=`${entry.employee||'An employee'} released the reply assignment · ${new Date(entry.timestamp).toLocaleString()}`;
+          else if (entry.action==='overridden') line.textContent=`${entry.overridden_by||'An employee'} took over replying from ${entry.employee||'another employee'} · ${new Date(entry.timestamp).toLocaleString()}`;
           else line.textContent=`${entry.employee||'An employee'} · ${new Date(entry.timestamp).toLocaleString()}`;
           list.append(line);
         }
@@ -620,7 +626,7 @@
         return result;
       }
       function gmailComposeUrl(contact,item) {
-        const subject='Re: '+(item.title||item.type||'Mile Zero Tours');
+        const subject='MileZeroTours: Website Question';
         const original=extractSubmittedMessage(item.details||{});
         let body=`Hello ${contact.name},\n\n`;
         if (original) {
@@ -629,12 +635,13 @@
         }
         return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(contact.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       }
-      async function startReply(item,contact,allowRepeat=false) {
+      async function startReply(item,contact,allowRepeat=false,override=false) {
         const pop=window.open('about:blank','_blank');
         try {
           const employee=savedProfile?.name?.trim()||'Employee';
-          const result=await postReplyAction(item,'claim',{employee_name:employee,recipient_name:contact.name,recipient_email:contact.email,allow_repeat:allowRepeat});
+          const result=await postReplyAction(item,'claim',{employee_name:employee,recipient_name:contact.name,recipient_email:contact.email,allow_repeat:allowRepeat,allow_override:override});
           try { localStorage.setItem('mzc-reply-claim-'+item.id,result.claim_id); } catch {}
+          if (detailsDialog.open) detailsDialog.close();
           if (pop) pop.location.href=gmailComposeUrl(contact,item);
           else window.location.href=gmailComposeUrl(contact,item);
           await refreshUpdates();
@@ -643,6 +650,59 @@
           await refreshUpdates();
           alert(error.message||'Unable to start reply.');
         }
+      }
+      function renderReplyControls(item,past=false) {
+        if (past) return null;
+        const contacts=collectEmailContacts(item.details||{});
+        const replyState=item.reply||{status:'pending'};
+        const fallback=replyState.recipient_email?{name:replyState.recipient_name||replyState.recipient_email,email:replyState.recipient_email}:null;
+        const available=contacts.length?contacts:(fallback?[fallback]:[]);
+        if (!available.length) return null;
+        const actions=document.createElement('div'); actions.className='update-reply-actions';
+        let picker=null;
+        if (available.length>1) {
+          picker=document.createElement('select'); picker.className='update-recipient-picker'; picker.setAttribute('aria-label','Choose email contact');
+          for (const contact of available) { const option=document.createElement('option'); option.value=contact.email; option.textContent=`${contact.name} · ${contact.email}`; picker.append(option); }
+          actions.append(picker);
+        }
+        const selected=()=>available.find(contact=>contact.email===(picker?.value||available[0]?.email))||available[0];
+        const stateButton=document.createElement('button'); stateButton.type='button'; stateButton.className='update-reply-button';
+        if (replyState.status==='replied') {
+          stateButton.classList.add('reply-replied'); stateButton.textContent='Replied';
+          stateButton.addEventListener('click',async()=>{
+            const name=replyState.replied_by||'Someone';
+            if (!confirm(`${name} Already replied to this, Do you want to reply again?`)) return;
+            await startReply(item,selected(),true,false);
+          });
+        } else if (replyState.status==='claimed') {
+          const owner=replyState.claimed_by||'Someone';
+          stateButton.classList.add('reply-in-progress'); stateButton.textContent=`${owner} is replying`;
+          let ownClaim=''; try { ownClaim=localStorage.getItem('mzc-reply-claim-'+item.id)||''; } catch {}
+          if (ownClaim && ownClaim===replyState.claim_id) {
+            stateButton.disabled=true;
+            const complete=document.createElement('button'); complete.type='button'; complete.className='update-reply-button reply-secondary'; complete.textContent='Mark as replied';
+            complete.addEventListener('click',async()=>{
+              if (!confirm('Have you sent the email in Gmail? Mark it as replied for everyone.')) return;
+              try { await postReplyAction(item,'complete',{employee_name:savedProfile?.name||'Employee',claim_id:ownClaim}); localStorage.removeItem('mzc-reply-claim-'+item.id); await refreshUpdates(); }
+              catch(error) { alert(error.message); await refreshUpdates(); }
+            });
+            const release=document.createElement('button'); release.type='button'; release.className='update-reply-button reply-secondary'; release.textContent='Release assignment';
+            release.addEventListener('click',async()=>{ try { await postReplyAction(item,'release',{employee_name:savedProfile?.name||'Employee',claim_id:ownClaim}); localStorage.removeItem('mzc-reply-claim-'+item.id); await refreshUpdates(); } catch(error) { alert(error.message); } });
+            actions.append(stateButton,complete,release);
+            const note=document.createElement('p'); note.className='reply-notice'; note.textContent='After sending in Gmail, return here and mark it as replied.'; actions.append(note);
+          } else {
+            stateButton.title=`${owner} is replying`;
+            stateButton.addEventListener('click',async()=>{
+              if (!confirm(`${owner} is currently replying... do you want to reply anyway?`)) return;
+              await startReply(item,selected(),false,true);
+            });
+            actions.append(stateButton);
+          }
+        } else {
+          stateButton.classList.add('reply-ready'); stateButton.textContent='Ready to reply';
+          stateButton.addEventListener('click',()=>startReply(item,selected())); actions.append(stateButton);
+        }
+        return actions;
       }
       function openUpdateDetails(item) {
         document.getElementById('details-type').textContent=item.type === 'Tree Opt Out' ? 'Tree Request' : (item.type || 'Form update');
@@ -657,6 +717,8 @@
         } else {
           const empty=document.createElement('p'); empty.className='details-empty'; empty.textContent='No additional details were saved for this submission.'; content.append(empty);
         }
+        const replyControls=renderReplyControls(item,false);
+        if (replyControls) content.append(replyControls);
         appendReplyHistory(content,item);
         detailsDialog.showModal();
       }
@@ -703,8 +765,10 @@
           const title=document.createElement('h3'); title.textContent=displayTitle;
           const summary=document.createElement('p'); summary.className='update-summary'; summary.textContent=item.summary||'';
           const time=document.createElement('time'); time.className='update-time'; time.dateTime=item.timestamp; time.textContent=new Date(item.timestamp).toLocaleString();
-          const dismiss=document.createElement('button'); dismiss.type='button'; dismiss.className='notification-dismiss'; dismiss.textContent='×'; dismiss.setAttribute('aria-label','Dismiss notification'); dismiss.title='Dismiss notification';
+          const dismiss=document.createElement('button'); dismiss.type='button'; dismiss.className='notification-dismiss'; dismiss.textContent='×'; dismiss.setAttribute('aria-label','Dismiss and move to past'); dismiss.title='Dismiss and move to past';
+          if (past) dismiss.hidden=true;
           dismiss.addEventListener('click',()=>{
+            saveSeenUpdates([{...item,_device_dismissed:true}]);
             dismissedNotificationIds.add(deviceEventId(item));
             try { localStorage.setItem(dismissedNotificationsKey,JSON.stringify([...dismissedNotificationIds].slice(-500))); } catch {}
             card.remove();
@@ -718,47 +782,8 @@
             review.href='https://www.appsheet.com/start/0ce6e650-0ac9-4b72-8e9a-15bd1610a6d8#view=On+Line+Mailing+List+Sign+Ups+to+Review';
             review.target='_blank'; review.rel='noopener noreferrer'; card.append(review);
           }
-          const contacts=collectEmailContacts(item.details||{});
-          const replyState=item.reply||{status:'pending'};
-          if (!past && (contacts.length || replyState.status==='claimed' || replyState.status==='replied')) {
-            const actions=document.createElement('div'); actions.className='update-reply-actions';
-            let recipientPicker=null;
-            if (contacts.length>1 && replyState.status!=='claimed') {
-              recipientPicker=document.createElement('select'); recipientPicker.className='update-recipient-picker'; recipientPicker.setAttribute('aria-label','Choose email contact');
-              for (const contact of contacts) { const option=document.createElement('option'); option.value=contact.email; option.textContent=`${contact.name} · ${contact.email}`; recipientPicker.append(option); }
-              actions.append(recipientPicker);
-            }
-            const selectedContact=()=>contacts.find(contact=>contact.email===(recipientPicker?.value||contacts[0]?.email));
-            const replyButton=document.createElement('button'); replyButton.type='button'; replyButton.className='update-reply-button';
-            if (replyState.status==='replied') {
-              replyButton.textContent='Replied';
-              replyButton.addEventListener('click',async()=>{
-                const name=replyState.replied_by||'Someone';
-                if (!confirm(`${name} Already replied to this, Do you want to reply again?`)) return;
-                const contact=selectedContact()||{name:replyState.recipient_name||replyState.recipient_email,email:replyState.recipient_email};
-                if (contact.email) await startReply(item,contact,true);
-              });
-            } else if (replyState.status==='claimed') {
-              const owner=replyState.claimed_by||'Another employee';
-              let ownClaim=''; try { ownClaim=localStorage.getItem('mzc-reply-claim-'+item.id)||''; } catch {}
-              if (ownClaim && ownClaim===replyState.claim_id) {
-                replyButton.textContent='Mark as replied';
-                replyButton.addEventListener('click',async()=>{
-                  if (!confirm('Have you sent the email in Gmail? Mark it as replied for everyone.')) return;
-                  try { await postReplyAction(item,'complete',{employee_name:savedProfile?.name||'Employee',claim_id:ownClaim}); localStorage.removeItem('mzc-reply-claim-'+item.id); await refreshUpdates(); }
-                  catch(error) { alert(error.message); await refreshUpdates(); }
-                });
-                const release=document.createElement('button'); release.type='button'; release.className='update-reply-button'; release.textContent='Release assignment';
-                release.addEventListener('click',async()=>{ try { await postReplyAction(item,'release',{employee_name:savedProfile?.name||'Employee',claim_id:ownClaim}); localStorage.removeItem('mzc-reply-claim-'+item.id); await refreshUpdates(); } catch(error) { alert(error.message); } });
-                actions.append(replyButton,release);
-                const note=document.createElement('p'); note.className='reply-notice'; note.textContent='After sending in Gmail, return here and mark it as replied.'; actions.append(note);
-              } else { replyButton.textContent=`Replying · ${owner}`; replyButton.disabled=true; actions.append(replyButton); }
-            } else if (contacts.length) {
-              replyButton.textContent='Reply in Gmail'; replyButton.addEventListener('click',()=>{const contact=selectedContact();if(contact)startReply(item,contact);}); actions.append(replyButton);
-            }
-            if (!actions.childElementCount && replyButton.textContent) actions.append(replyButton);
-            if (actions.childElementCount) card.append(actions);
-          }
+          const replyControls=renderReplyControls(item,past);
+          if (replyControls) card.append(replyControls);
           appendReplyHistory(card,item);
           if (item.details && Object.keys(item.details).length) {
             const reveal=document.createElement('button'); reveal.type='button'; reveal.className='update-details-toggle'; reveal.textContent='Review Details';
@@ -788,7 +813,8 @@
           const past=loadSeenUpdates().filter(item=>{
             const category=item.type==='Booking'?'booking':item.type==='Website Question'?'website':'other';
             const stamp=Date.parse(item.timestamp);
-            return selectedNotificationTypes.has(category) && Number.isFinite(stamp) && stamp<cutoff && !lastCloudEventIds.has(deviceEventId(item));
+            const id=deviceEventId(item);
+            return selectedNotificationTypes.has(category) && Number.isFinite(stamp) && (dismissedNotificationIds.has(id) || (stamp<cutoff && !lastCloudEventIds.has(id)));
           });
           status.textContent=past.length?`${past.length} past update${past.length===1?'':'s'} saved on this device.`:'No past updates saved on this device yet.';
           renderUpdateCards(past,list,' saved on this device',true); return;
