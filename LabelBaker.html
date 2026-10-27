@@ -282,6 +282,11 @@
       padding: 0.18in 0.2in;
     }
 
+    .card-page .label-logo {
+      height: 0.72in;
+      margin-bottom: 0.14in;
+    }
+
     .card-page .label-name {
       max-width: 3.7in;
       font-size: 50px;
@@ -650,6 +655,11 @@
       .card-page .label {
         width: 4in;
         height: 3in;
+      }
+
+      .card-page .label-logo {
+        height: 0.72in;
+        margin-bottom: 0.14in;
       }
 
       .page:last-of-type {
@@ -1771,7 +1781,7 @@ function importCSVText(csvText) {
 
       return `
         <div class="empty-message">
-          <h1>LabelBaker (v1.3)</h1>
+          <h1>LabelBaker</h1> 
         </div>
       `;
     }
