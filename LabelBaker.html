@@ -268,6 +268,20 @@
       position: relative;
     }
 
+    .page.card-page {
+      padding: 1in 0.25in;
+      grid-template-columns: repeat(2, 4in);
+      grid-template-rows: repeat(3, 3in);
+      justify-content: center;
+      align-content: center;
+    }
+
+    .card-page .label {
+      width: 4in;
+      height: 3in;
+      padding: 0.18in 0.2in;
+    }
+
     /* =========================
        LABEL
        ========================= */
@@ -458,7 +472,24 @@
 
     .topbar-right {
       display: flex;
+      align-items: center;
       gap: 10px;
+    }
+
+    .paper-type-control {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .paper-type-control select {
+      padding: 7px 9px;
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 5px;
+      background: white;
+      color: var(--ink);
+      font-size: 12px;
     }
 
     .btn-print {
@@ -554,6 +585,19 @@
         page-break-inside: avoid;
       }
 
+      .page.card-page {
+        padding: 1in 0.25in;
+        grid-template-columns: repeat(2, 4in);
+        grid-template-rows: repeat(3, 3in);
+        justify-content: center;
+        align-content: center;
+      }
+
+      .card-page .label {
+        width: 4in;
+        height: 3in;
+      }
+
       .page:last-of-type {
         page-break-after: auto;
       }
@@ -582,6 +626,14 @@
   ></div>
 
   <div class="topbar-right">
+
+    <label class="paper-type-control" for="paperType">
+      Paper Type
+      <select id="paperType">
+        <option value="sticker">Sticker (Full Size)</option>
+        <option value="cards">Cards (Full Size)</option>
+      </select>
+    </label>
 
     <button
       class="edit-mode-toggle active"
@@ -707,7 +759,11 @@
   const logoSrc =
     'assets/mzt/milezerotours-wordmark-transparent.png';
 
-  const labelsPerPage = 10;
+  let paperType = 'sticker';
+
+  function getLabelsPerPage() {
+    return paperType === 'cards' ? 6 : 10;
+  }
 
   let labels = [];
 
@@ -830,13 +886,13 @@ function splitName(fullName) {
     }
 
     const remainder =
-      labels.length % labelsPerPage;
+      labels.length % getLabelsPerPage();
 
     if (remainder !== 0) {
 
       labels.push(
         ...Array(
-          labelsPerPage - remainder
+          getLabelsPerPage() - remainder
         ).fill('')
       );
     }
@@ -846,12 +902,12 @@ function splitName(fullName) {
   function trimTrailingEmptySlots() {
 
     while (
-      labels.length >= labelsPerPage
+      labels.length >= getLabelsPerPage()
     ) {
 
       const lastPage =
         labels.slice(
-          labels.length - labelsPerPage
+          labels.length - getLabelsPerPage()
         );
 
       if (
@@ -859,8 +915,8 @@ function splitName(fullName) {
       ) {
 
         labels.splice(
-          labels.length - labelsPerPage,
-          labelsPerPage
+          labels.length - getLabelsPerPage(),
+          getLabelsPerPage()
         );
 
       } else {
@@ -1687,7 +1743,7 @@ function importCSVText(csvText) {
     const totalPages =
       Math.ceil(
         labels.length /
-        labelsPerPage
+        getLabelsPerPage()
       );
 
 
@@ -1698,18 +1754,18 @@ function importCSVText(csvText) {
     ) {
 
       html +=
-        '<div class="page">';
+        `<div class="page ${paperType === 'cards' ? 'card-page' : ''}">`;
 
 
       const start =
         pageNumber *
-        labelsPerPage;
+        getLabelsPerPage();
 
 
       const end =
         Math.min(
           start +
-          labelsPerPage,
+          getLabelsPerPage(),
           labels.length
         );
 
@@ -1973,7 +2029,7 @@ function importCSVText(csvText) {
 
     labels.push(
       ...Array(
-        labelsPerPage
+        getLabelsPerPage()
       ).fill('')
     );
 
@@ -2040,6 +2096,17 @@ function importCSVText(csvText) {
         'click',
         triggerPrint
       );
+
+
+    /* PAPER TYPE */
+
+    const paperTypeSelect = document.getElementById('paperType');
+    paperTypeSelect.value = paperType;
+    paperTypeSelect.addEventListener('change', event => {
+      paperType = event.currentTarget.value;
+      normalizeLabels();
+      render();
+    });
 
 
     /* EDIT MODE */
